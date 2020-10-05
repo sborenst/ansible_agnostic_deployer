@@ -1,9 +1,13 @@
 
 = What is in a Config?
 
-This section models the typical layout of a config using a-base-config as an example.
+First let's define what a config is. 
+
+In our developments, a config is the skel of any kind of technical asset (a lab, a demo, a workshop) to be deployed on the cloud of our choice (remember AgnosticD is based on the Infrastructure as Code paradigm for deploying architectures).
 
 === Directory structure of `a-base-config`.
+
+This section models the typical layout of a config using `a-base-config` as an example.
 
 image:./files/images/a-base-tree.png[role="thumb left", caption="a-base-config"]
 
