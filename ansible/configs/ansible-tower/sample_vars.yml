@@ -169,3 +169,10 @@ pip_requirements:
 key_local_path:
     - "~/.ssh/{{key_name}}.pem"
     - "~/.ssh/opentlc_admin_backdoor.pem"
+
+
+ansible_tower_dynamic_workloads:
+  - name: azure_ansible_execution_env
+    groups:
+      - towers
+      - workers

@@ -52,3 +52,26 @@
         loop: "{{ infra_workloads }}"
         loop_control:
           loop_var: workload_loop_var
+
+
+- name: Install dynamic workloads
+  hosts: all
+  gather_facts: false
+  tags:
+    - dynamic_workloads
+  tasks:
+    - name: Process workloads
+      loop: "{{ ansible_tower_dynamic_workloads | default([]) }}"
+      loop_control:
+        loop_var: _workload
+        label: "{{ _workload.name }}"
+      include_role:
+        name: "{{ _workload.name }}"
+        defaults_from: "{{ _workload.defaults_from | default('main') }}"
+        handlers_from: "{{ _workload.defaults_from | default('main') }}"
+        tasks_from: "{{ _workload.tasks_from | default('main') }}"
+        vars_from: "{{ _workload.vars_from | default('main') }}"
+      when: >-
+        _workload.group | default('') in group_names )
+        or
+        _workload.groups | default([]) | intersect(group_names) | list | length > 0
