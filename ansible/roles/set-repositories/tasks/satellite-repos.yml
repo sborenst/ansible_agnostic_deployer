@@ -101,6 +101,16 @@
     activationkey: "{{ set_repositories_satellite_activationkey }}"
     org_id: "{{ set_repositories_satellite_org | default(satellite_org) }}"
 
+- name: Lock RHEL release to a version
+  when:
+    - rhel_lock_release is defined
+    - rhel_lock_release != ''
+  command: subscription-manager release --set={{ rhel_lock_release }}
+  register: lock_result
+  until: lock_result is succeeded
+  retries: 15
+  delay: 10
+
 - name: Enable repos
   rhsm_repository:
     name: "*"
