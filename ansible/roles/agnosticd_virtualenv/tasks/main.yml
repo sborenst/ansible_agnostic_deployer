@@ -1,0 +1,13 @@
+---
+- name: Create virtualenv {{ agnosticd_virtualenv }}
+  when: not agnosticd_virtualenv is directory
+  include_tasks: create.yml
+
+- name: Touch last-used in {{ agnosticd_virtualenv }}
+  file:
+    path: "{{ agnosticd_virtualenv }}/last-used"
+    state: touch
+
+- name: Set ansible_python_interpreter
+  set_fact:
+    ansible_python_interpreter: "{{ agnosticd_virtualenv }}/bin/python"

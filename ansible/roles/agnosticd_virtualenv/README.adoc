@@ -1,0 +1,18 @@
+= agnosticd_virtualenv
+
+Create a Python virtualenv for a host and set `ansible_python_interpreter` so that further task execution on the host will occur with this virtualenv.
+
+This is role runs from setup_runtime with a default set of Python requirements that can be set in a configs `python-requirements.txt`.
+
+== Configuration
+
+`agnosticd_virtualenv_requirements` - Python requirements in list format as used by `pip` module `name` argument.
+Default value loaded from lines in `configs/{{ env_type }}/python-requirements.txt` if it exists.
+
+`agnosticd_virtualenv_base_dir` - Directory in which to create virtualenvs. Default `/tmp`.
+
+`agnosticd_virtualenv_python` - Python interpreter used to create the virtual env. Default `{{ ansible_python_interpreter }}`.
+
+`agnosticd_virtualenv` - Location to create virtualenv.
+This defaults to a path with a hash checksum of the requirements and python interpreter to give a unique path based on these values.
+This should not be set if a generated unique path is desired.

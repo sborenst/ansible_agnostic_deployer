@@ -1,0 +1,25 @@
+---
+- name: Create temporary directory for {{ agnosticd_virtualenv }}
+  tempfile:
+    path: "{{ agnosticd_virtualenv_base_dir }}"
+    prefix: agnosticd-venv-
+    suffix: -tmp
+    state: directory
+  register: r_agnosticd_virtualenv_tmp
+
+- name: Install packages into agnosticd virtualenv tmp
+  pip:
+    name: "{{ agnosticd_virtualenv_requirements }}"
+    virtualenv: "{{ r_agnosticd_virtualenv_tmp.path }}"
+    virtualenv_python: "{{ agnosticd_virtualenv_python }}"
+
+# Ansible has no file move or rename module, so command will have to do
+- name: Move agnosticd virtualenv tmp to {{ agnosticd_virtualenv }}
+  command: mv {{ r_agnosticd_virtualenv_tmp.path }} {{ agnosticd_virtualenv }}
+  # Failed to mv virtualenv most likely means that another agnosticd run created it first
+  failed_when: false
+
+- name: Remove {{ agnosticd_virtualenv }}.tmp if not moved
+  file:
+    path: "{{ r_agnosticd_virtualenv_tmp.path }}"
+    state: absent

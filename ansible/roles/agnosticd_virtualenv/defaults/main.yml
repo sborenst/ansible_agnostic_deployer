@@ -1,0 +1,17 @@
+---
+# List of requirements to pass to pip module in name parameter
+agnosticd_virtualenv_requirements: >-
+  {{ lookup('file', playbook_dir ~ '/configs/' ~ env_type ~ '/python-requirements.txt').split() }}
+
+# Where to create virtualenv directories
+agnosticd_virtualenv_base_dir: /tmp
+
+# Virtual environment python
+agnosticd_virtualenv_python: "{{ ansible_python_interpreter }}"
+
+# Path to agnosticd virtualenv
+agnosticd_virtualenv: >-
+  {{ agnosticd_virtualenv_base_dir
+   ~ '/agnosticd-venv-'
+   ~ [[agnosticd_virtualenv_python] + agnosticd_virtualenv_requirements] | hash('sha256')
+  }}

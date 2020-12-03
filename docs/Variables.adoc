@@ -42,6 +42,18 @@ Default value `pass:[__meta__.callback.token]`.
 | API URL used to callback with information and data collected from `agnosticd_user_info`.
 This is used to integrate AgnosticD with external systems including Babylon and GUID Grabber.
 Default value `pass:[__meta__.callback.url]`.
+
+| `agnosticd_virtualenv_requirements`
+| Python requirements in list format as used by `pip` module `name` argument.
+Default value loaded from lines in `configs/{{ env_type }}/python-requirements.txt` if it exists.
+
+| `agnosticd_virtualenv_base_dir`
+| Directory in which to create virtualenvs. Default `/tmp`.
+
+| `agnosticd_virtualenv_python`
+| Python interpreter used to create the virtual env.
+Default `{{ ansible_python_interpreter }}`.
+
 |============================
 
 === Other Variables

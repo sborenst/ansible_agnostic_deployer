@@ -42,6 +42,19 @@
 # include global vars from the config
 - import_playbook: include_vars.yml
 
+- name: Setup AgnosticD virtualenv
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+  - include_role:
+      name: agnosticd_virtualenv
+    when: >-
+      agnosticd_virtualenv_requirements is defined
+      or
+      (playbook_dir ~ '/configs/' ~ env_type ~ '/python-requirements.txt') is file
+
 # Load galaxy roles of the config
 - import_playbook: install_galaxy_roles.yml
   tags: galaxy_roles

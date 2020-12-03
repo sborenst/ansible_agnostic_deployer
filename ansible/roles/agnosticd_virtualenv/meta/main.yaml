@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  author: Johnathan Kupferer <jkupfere@redhat.com>
+  description: AgnosticD Virtualenv Management
+  company: Red Hat
+  license: BSD
+  min_ansible_version: 2.9
+  galaxy_tags: []
+
+dependencies: []
