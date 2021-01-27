@@ -34,6 +34,13 @@
       args:
         stdin: "{{ kerberos_password }}"
 
+    - name: Ensure NS records exist for this sandbox
+      command: host -t ns -W 60 -R 10 {{ account_name }}.{{ ipa_domain }}
+      register: r_host_ns
+      failed_when: >-
+        r_host_ns.rc != 0
+        or "not found" in r_host_ns.stdout
+
     - name: Fetch all NS records for this sandbox
       shell: >-
         host -t ns -W 60 -R 10 {{ account_name }}.{{ ipa_domain }}
