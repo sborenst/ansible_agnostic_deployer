@@ -24,6 +24,12 @@
     - step000
     - pre_infra_tasks
 
+- name: Common Pre Infra
+  import_playbook: pre_infra_common.yml
+  tags:
+    - step000
+    - pre_infra_tasks
+
 #################################################################################
 #################################################################################
 ############ Step 001 Deploy Infrastructure
@@ -42,6 +48,12 @@
     - step001
     - deploy_infrastructure
 
+- name: Common Infra
+  import_playbook: infra_common.yml
+  tags:
+    - step001
+    - deploy_infrastructure
+
 ################################################################################
 ################################################################################
 ########### Step 002 Post Infrastructure Deploy Tasks
@@ -49,6 +61,13 @@
 ################################################################################
 
 - import_playbook: "./configs/{{ env_type }}/post_infra.yml"
+  tags:
+    - step002
+    - post_infra
+    - post_infra_tasks
+
+- name: Common Post Infra
+  import_playbook: post_infra_common.yml
   tags:
     - step002
     - post_infra
@@ -62,6 +81,13 @@
 
 - name: Pre Software
   import_playbook: "./configs/{{ env_type }}/pre_software.yml"
+  tags:
+    - step003
+    - pre_software
+    - pre_software_tasks
+
+- name: Common Pre Software
+  import_playbook: pre_software_common.yml
   tags:
     - step003
     - pre_software
@@ -85,6 +111,12 @@
     - step004
     - deploy_software
 
+- name: Common Software
+  import_playbook: software_common.yml
+  tags:
+    - step004
+    - deploy_software
+
 ################################################################################
 ################################################################################
 ############ Step 005 Post Software Deploy Tasks
@@ -92,6 +124,12 @@
 ################################################################################
 
 - import_playbook: "./configs/{{ env_type }}/post_software.yml"
+  tags:
+    - step005
+    - post_software
+    - post_software_tasks
+
+- import_playbook: post_software_common.yml
   tags:
     - step005
     - post_software

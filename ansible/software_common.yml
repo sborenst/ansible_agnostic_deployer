@@ -1,0 +1,22 @@
+---
+- name: Install Software dynamic roles
+  hosts: all
+  gather_facts: false
+  tags:
+    - dynamic_roles
+  tasks:
+    - name: Process roles
+      loop: "{{ agnosticd_software_roles | default([]) }}"
+      loop_control:
+        loop_var: _role
+        label: "{{ _role.name }}"
+      include_role:
+        name: "{{ _role.name }}"
+        defaults_from: "{{ _role.defaults_from | default('main') }}"
+        handlers_from: "{{ _role.defaults_from | default('main') }}"
+        tasks_from: "{{ _role.tasks_from | default('main') }}"
+        vars_from: "{{ _role.vars_from | default('main') }}"
+      when: >-
+        _role.group | default('') in group_names )
+        or
+        _role.groups | default([]) | intersect(group_names) | list | length > 0
