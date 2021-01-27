@@ -88,6 +88,7 @@
         r_openstack_volume_delete.rc != 0 and
         'No volume with a name or ID' not in r_openstack_volume_delete.stderr
 
+
   - name: Get all remaining trunk ports in project
     command: >-
       openstack port list
@@ -109,3 +110,22 @@
     command: |
       neutron purge
       --project {{ osp_project_info[0].id | default(osp_project_id) | quote }}
+
+  - name: Get all remaining containers in project
+    command: >-
+      openstack container list
+      --project {{ osp_project_id | default(osp_project_name) | quote }}
+      -f json -c Name
+    register: r_containers
+
+  - name: Delete all containers and objects
+    vars:
+      __all_containers: >-
+        {{ r_containers.stdout
+        | from_json
+        | json_query('[*].Name')
+        | list }}
+    when: __all_containers | length > 0
+    command: >-
+      openstack container delete -r {{ item | quote }}
+    loop: "{{ __all_containers }}"
