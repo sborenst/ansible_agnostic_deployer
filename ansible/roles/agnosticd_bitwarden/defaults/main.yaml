@@ -1,0 +1,3 @@
+---
+agnosticd_bitwarden_delay: 10
+agnosticd_bitwarden_retries: 12

@@ -1,0 +1,48 @@
+== Bitwarden Role for AgnosticD ==
+
+
+This role uses the module link:../../library/bitwarden.py[`bitwarden.py`].
+It loads variables defined in secret Notes on bitwarden into memory.
+
+
+=== Example ===
+
+[source,yaml]
+.secrets.yaml
+----
+agnosticd_bitwarden_username: my@email.address
+agnosticd_bitwarden_password: ...
+agnosticd_bitwarden_salt: ... # <1>
+----
+<1> Salt is used to encrypt the Token locally on the deployer host. Providing a Salt increase the security.
+
+[source,yaml]
+.catalog_item.yaml
+----
+env_type: test-empty-config
+cloud_provider: test
+env_type: test-empty-config
+output_dir: /tmp/output_dir/{{ env_type }}-{{ guid }}
+
+agnosticd_bitwarden_secrets:
+ - 1cef26bd-300e-44fc-950a-000000ab440e # <1>
+----
+<1> you can either specify a UUID (prefered) or the full name of the secret
+
+.Run
+[source,shell]
+----
+ansible-playbook -e @catalog_item.yaml -e @secrets.yaml
+----
+
+AgnosticD will get the secret notes from bitwarden and dynamically load the variables found inside it.
+
+If the secret `1cef26bd-300e-44fc-950a-000000ab440e` is:
+
+[source,yaml]
+----
+aws_access_key_id: foo
+aws_secret_access_key: bar
+----
+
+Then those 2 variables will be available in ansible.

@@ -61,3 +61,11 @@
           item.stat.path
           | default('skipped')
         ) if 'stat' in item else item }}
+
+  - name: Load secret vars from Bitwarden
+    when:
+      - agnosticd_bitwarden_username is defined
+      - agnosticd_bitwarden_password is defined
+      - agnosticd_bitwarden_secrets | default([]) | length > 0
+    include_role:
+      name: agnosticd_bitwarden

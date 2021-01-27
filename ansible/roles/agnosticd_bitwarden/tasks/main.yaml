@@ -1,0 +1,15 @@
+---
+- name: Get secret from bitwarden
+  bitwarden:
+    secrets: "{{ agnosticd_bitwarden_secrets }}"
+    username: "{{ agnosticd_bitwarden_username }}"
+    password: "{{ agnosticd_bitwarden_password }}"
+    salt: "{{ agnosticd_bitwarden_salt | default('SALT') }}"
+    include_vars: "{{ agnosticd_bitwarden_include_vars | default(true) }}"
+    cache: "{{ agnosticd_bitwarden_cache_ttl | default(1) }}"
+    vault_dir: "~/bw-data-{{ agnosticd_bitwarden_username }}"
+    token_path: "~/bw-data-{{ agnosticd_bitwarden_username }}/token"
+  register: r_secrets
+  delay: "{{ agnosticd_bitwarden_delay }}"
+  retries: "{{ agnosticd_bitwarden_retries }}"
+  until: r_secrets is succeeded
