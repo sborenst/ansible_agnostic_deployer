@@ -2,16 +2,17 @@
 # PROVIDED BY THE INFRA
 # Uncomment and set a value to take effect. Else, will use the defaults
 admin_project: ocp-workshop
+project_admin: opentlc-mgr
 user_count_start: 1
 num_users: 5 
 #user_format: user%02d
 user_format: user%d
 user_password: "openshift"
-ocp_bastion: "bastion.{{ guid }}{{ subdomain_base_suffix }}"
+ocp_bastion: "bastion.{{ guid }}{{ ocp_apps_domain }}"
 bastion_internal: "bastion.{{ guid }}.internal"
 
-ocp_master: "master.{{ guid }}{{ subdomain_base_suffix }}"
-ocp_apps_domain: apps.{{ guid }}{{ subdomain_base_suffix }}
+ocp_master: "master.{{ guid }}{{ ocp_apps_domain }}"
+ocp_apps_domain: apps.{{ guid }}{{ ocp_apps_domain }}
 ocp_user_needs_quota: "false"
 user_count: "{{ num_users }}"
 
@@ -24,7 +25,7 @@ user_gogs_password: "openshift"
 
 che_project: "che-workspaces"
 
-repo_url: https://github.com/RedHatDemos/SecurityDemos.git
+repo_url: https://github.com/tosin2013/SecurityDemos.git
 reponame_local: SecurityDemos
 reponame: SecurityDemos
 demoapp_location: 2019Labs/ProactiveSecurityCompliance/OpenShiftSecurityPipeline/spring-boot-angular-ecommerce
@@ -54,9 +55,9 @@ openshift_cli: oc
 
 
 ###### gogs defaults
-gogs_image_version: 0.11.29
+gogs_image_version: 0.11.91
 
-gogs_route: gogs-{{ project_name }}.127.0.0.1.nip.io
+gogs_route: gogs-gogs.{{ ocp_apps_domain }}
 
 gogs_admin_user: gogs
 gogs_admin_password: gogs
@@ -64,8 +65,8 @@ gogs_admin_password: gogs
 gogs_user: developer
 gogs_password: developer
 
-gogs_generate_user_count: 0
-gogs_generate_user_format: user%02d
+gogs_generate_user_count: "{{ user_count }}"
+gogs_generate_user_format:  user%d
 
 gogs_project_name: gogs
 gogs_project_display_name: Gogs
@@ -108,3 +109,12 @@ nexus_admin_user: admin
 nexus_admin_password: admin123
 
 ocp_registry_route: unset
+
+## sonarqube info 
+sonarqube_version: 8.7.0.41497
+sonarqube_project_name: sonarqube
+sonarqube_project_display_name: SonarQube
+sonarqube_project_desc: Code Quality and Code Security
+sonarqube_service_name: sonarqube
+sonarqube_deploy_retry_count: 60
+sonarqube_deploy_retry_delay: 10

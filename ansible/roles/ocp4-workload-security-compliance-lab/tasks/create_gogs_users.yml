@@ -2,7 +2,7 @@
 # Create Gogs Users
 - name: create gogs admin user '{{ gogs_admin_user }}'
   uri:
-    url: http://{{ gogs_route }}/user/sign_up
+    url: http://gogs-gogs.{{ocp_apps_domain}}/user/sign_up
     method: POST
     body: "user_name={{ gogs_admin_user }}&password={{ gogs_admin_password }}&&retype={{ gogs_admin_password }}&&email={{ gogs_admin_user }}@gogs.com"
     headers:
@@ -11,7 +11,7 @@
 
 - name: check if user '{{ gogs_user }}' exists
   uri:
-    url: http://{{ gogs_route }}/api/v1/users/{{ gogs_user }}
+    url: http://gogs-gogs.{{ocp_apps_domain}}/api/v1/users/{{ gogs_user }}
     user: "{{ gogs_admin_user }}"
     password: "{{ gogs_admin_password }}"
     force_basic_auth: true
@@ -20,7 +20,7 @@
 
 - name: create gogs user '{{ gogs_user }}'
   uri:
-    url: http://{{ gogs_route }}/api/v1/admin/users
+    url: http://gogs-gogs.{{ocp_apps_domain}}/api/v1/admin/users
     method: POST
     body: "{'login_name': '{{ gogs_user }}', 'username': '{{ gogs_user }}', 'email': '{{ gogs_user }}@gogs.com', 'password': '{{ gogs_password }}'}"
     body_format: json
@@ -32,7 +32,7 @@
 
 - name: generate gogs users
   uri:
-    url: http://{{ gogs_route }}/api/v1/admin/users
+    url: http://gogs-gogs.{{ocp_apps_domain}}/api/v1/admin/users
     method: POST
     body: "{'login_name': '{{ item }}', 'username': '{{ item }}', 'email': '{{ item }}@gogs.com', 'password': '{{ gogs_password }}'}"
     body_format: json
@@ -41,5 +41,4 @@
     status_code: 200,201
     force_basic_auth: true
   ignore_errors: true
-  with_sequence: start=0 end={{ gogs_generate_user_count }} format="{{ gogs_generate_user_format }}"
-  when: gogs_generate_user_count > 0
+  with_sequence: start=0 end="{{ gogs_generate_user_count }}" format=user%x

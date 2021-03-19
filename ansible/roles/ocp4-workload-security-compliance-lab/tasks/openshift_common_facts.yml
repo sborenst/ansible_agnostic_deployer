@@ -12,7 +12,7 @@
     oc_kube_config|trim() != ""
 - name: set openshift cli options (.kube)
   set_fact:
-    openshift_cli: "{{ openshift_cli }} --config={{ oc_kube_config }}"
+    openshift_cli: "{{ openshift_cli }} --kubeconfig={{ oc_kube_config }}"
   when: > 
     oc_kube_config is defined and
     oc_kube_config is not none and 

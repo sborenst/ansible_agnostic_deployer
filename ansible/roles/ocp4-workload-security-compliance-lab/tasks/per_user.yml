@@ -64,22 +64,35 @@
     - name: Allow proper formatting of archived html in jenkins and install plugins
       command: "{{ openshift_cli }} set env dc/jenkins JENKINS_JAVA_OVERRIDES=-Dhudson.model.DirectoryBrowserSupport.CSP= -n {{ my_user }}"
 
+
     - name: Populate buildconfig template
       template:
         src: buildconfig.yml.j2
         dest: "{{tmp_dir}}/files/buildconfig.yaml"
         mode: '0644'
 
+    - name: Populate hardening-buildconfig template
+      template:
+        src: hardening-buildconfig.yml.j2
+        dest: "{{tmp_dir}}/files/hardening-buildconfig.yaml"
+        mode: '0644'
+
     - name: Create build template
-      command: "{{ openshift_cli }} create -f {{tmp_dir}}/files/buildconfig.yaml -n {{ my_user }}"
+      command: "{{ openshift_cli }} create -f {{tmp_dir}}/files/{{ item }} -n {{ my_user }}"
       tags: always
       ignore_errors: true
+      loop:
+        - buildconfig.yaml
+        - hardening-buildconfig.yaml
+
 
     - name: Create jenkins pipeline
-      #command: "{{ openshift_cli }} new-app ecommerce-build-template -p GUID={{ guid }} -p GOGS_USER={{ my_user }} -p SSH_PASSWORD={{ user_password }} -n {{ my_user }}"
-      command: "{{ openshift_cli }} new-app ecommerce-build-template -p INTERNAL_REGISTRY={{ ocp_registry_route }} -p BASTION={{ ocp_bastion }} -p APP_DOMAIN={{ ocp_apps_domain }} -p API_ENDPOINT={{ openshift_master }} -p GUID={{ guid }} -p GOGS_USER={{ my_user }} -p SSH_PASSWORD={{ admin_password }} -n {{ my_user }}"
+      command: "{{ openshift_cli }} new-app {{ item }} -p INTERNAL_REGISTRY={{ ocp_registry_route }} -p BASTION={{ ocp_bastion }} -p APP_DOMAIN={{ ocp_apps_domain }} -p API_ENDPOINT={{ openshift_master }} -p GUID={{ guid }} -p GOGS_USER={{ my_user }} -p SSH_PASSWORD={{ user_password }} -n {{ my_user }}"
       tags: always
       ignore_errors: true
+      loop:
+        - ecommerce-build-template
+        - hardening-template
 
 #    Quotas caused issues (errors) in OCP4
 #    # Create cluster quota for the user to prevent abuse
@@ -110,10 +123,27 @@
 
     # Clone required project in Gogs
     #
+    - name: check gogs token for "{{ my_user }}"
+      uri:
+        url: http://gogs-gogs.{{ocp_apps_domain}}/api/v1/users/{{ my_user }}/tokens
+        method: POST
+        body: '{"name": "token", "private": false}'
+        body_format: json
+        user: "{{ my_user }}"
+        password: "{{ user_gogs_password }}"
+        force_basic_auth: true
+        status_code: 200,201
+      register: token_result
+      tags: gogs
+
+
+    - name: Setting host facts using complex arguments
+      set_fact:
+        token_fact: "{{ token_result.json.sha1  }}"
 
     - name: check if repository exists in git for user "{{ my_user }}"
       uri:
-        url: http://{{ gogs_hostname }}/api/v1/repos/{{ my_user }}/{{ reponame_local }}
+        url: http://gogs-gogs.{{ocp_apps_domain}}/api/v1/repos/{{ my_user }}/{{ reponame_local }}
         user: "{{ my_user }}"
         password: "{{ user_gogs_password }}"
         force_basic_auth: true
@@ -123,17 +153,17 @@
 
     - name: create git repository for user "{{ my_user }}"
       uri:
-        url: http://{{ gogs_hostname }}/api/v1/user/repos
+        url: http://gogs-gogs.{{ocp_apps_domain}}/api/v1/user/repos
         method: POST
-        body: '{"name": "{{ reponame_local }}", "private": false}'
+        headers:
+          Content-Type: application/json
+          Authorization: token {{ token_fact }}
+        body: '{"name": "{{ reponame_local }}", "description": "This is your first repository", "private": false}'
         body_format: json
-        user: "{{ my_user }}"
-        password: "{{ user_gogs_password }}"
         status_code: 200,201
-        force_basic_auth: true
       when: repo_result.status != 200
       tags: gogs
-
+    
     - name: Update the pom.xml file
       replace:
         path: "{{ git_dir.path }}/{{ reponame }}/{{ demoapp_location }}/pom.xml"
@@ -160,7 +190,7 @@
 
     - name: push catalog to git repository in Gogs for user "{{ my_user }}"
       shell: |
-        git remote add {{ my_user }} http://{{ my_user }}:{{ user_gogs_password }}@{{ gogs_hostname }}/{{ my_user }}/{{ reponame_local }}.git
+        git remote add {{ my_user }} http://{{ my_user }}:{{ user_gogs_password }}@gogs-gogs.{{ocp_apps_domain}}/{{ my_user }}/{{ reponame_local }}.git
         git config --local user.email "{{ my_user }}@example.com"
         git config --local user.name "{{ my_user }}"
         git push -f --all {{ my_user }}

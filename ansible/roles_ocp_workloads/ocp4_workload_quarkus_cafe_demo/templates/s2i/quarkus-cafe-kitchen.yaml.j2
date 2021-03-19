@@ -1,0 +1,164 @@
+apiVersion: v1
+items:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: "2020-04-19T18:41:28Z"
+    labels:
+      app: quarkus-cafe-kitchen
+      app.kubernetes.io/component: quarkus-cafe-kitchen
+      app.kubernetes.io/instance: quarkus-cafe-kitchen
+    name: quarkus-cafe-kitchen
+    namespace: {{ project_namespace }}
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: quarkus-cafe-kitchen:latest
+    postCommit: {}
+    resources:
+      limits:
+        cpu: "{{ quarkus_build_cpu_limit }}"
+        memory: {{ quarkus_build_memory_limit }}
+      requests:
+        cpu: "{{ quarkus_build_cpu_limit }}"
+        memory: {{ quarkus_build_memory_limit }}
+    runPolicy: Serial
+    source:
+      contextDir: quarkus-cafe-kitchen
+      git:
+        uri: {{ git_url }}
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ubi-quarkus-native-s2i:20.0.0-java11
+      type: Source
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - github:
+        secret: i8KTo76DGXLD7r1eWTy7
+      type: GitHub
+    - generic:
+        secret: 8s5yTsjC4Vy3ankBW9ZH
+      type: Generic
+    - type: ConfigChange
+    - imageChange:
+        lastTriggeredImageID: quay.io/quarkus/ubi-quarkus-native-s2i@sha256:3cd4bc7641d13cb2a8412a66eddd2e1f125bdb16426da7a26d59dae7a0c2fc55
+      type: ImageChange
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: "2020-04-19T18:41:28Z"
+    generation: 1
+    labels:
+      app: quarkus-cafe-kitchen
+      app.kubernetes.io/component: quarkus-cafe-kitchen
+      app.kubernetes.io/instance: quarkus-cafe-kitchen
+    name: quarkus-cafe-kitchen
+    namespace: {{ project_namespace }}
+  spec:
+    lookupPolicy:
+      local: false
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: "2020-04-19T18:41:29Z"
+    generation: 3
+    labels:
+      app: quarkus-cafe-kitchen
+      app.kubernetes.io/component: quarkus-cafe-kitchen
+      app.kubernetes.io/instance: quarkus-cafe-kitchen
+    name: quarkus-cafe-kitchen
+    namespace: {{ project_namespace }}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      deploymentconfig: quarkus-cafe-kitchen
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          deploymentconfig: quarkus-cafe-kitchen
+      spec:
+        containers:
+        - env:
+          - name: KAFKA_BOOTSTRAP_URLS
+            value: {{ kafka_cluster_name }}-kafka-bootstrap:9092
+          image: image-registry.openshift-image-registry.svc:5000/{{ project_namespace }}/quarkus-cafe-kitchen@sha256:a424d245e3e2990325a51deb38bfb40d3d5d41a597c61e8cdaa89990c68a0a10
+          imagePullPolicy: Always
+          name: quarkus-cafe-kitchen
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - quarkus-cafe-kitchen
+        from:
+          kind: ImageStreamTag
+          name: quarkus-cafe-kitchen:latest
+          namespace: {{ project_namespace }}
+        lastTriggeredImage: image-registry.openshift-image-registry.svc:5000/{{ project_namespace }}/quarkus-cafe-kitchen@sha256:a424d245e3e2990325a51deb38bfb40d3d5d41a597c61e8cdaa89990c68a0a10
+      type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: "2020-04-19T18:41:29Z"
+    labels:
+      app: quarkus-cafe-kitchen
+      app.kubernetes.io/component: quarkus-cafe-kitchen
+      app.kubernetes.io/instance: quarkus-cafe-kitchen
+    name: quarkus-cafe-kitchen
+    namespace: {{ project_namespace }}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: quarkus-cafe-kitchen
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""

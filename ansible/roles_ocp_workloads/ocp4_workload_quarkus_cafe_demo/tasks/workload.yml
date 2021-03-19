@@ -1,0 +1,42 @@
+---
+- name: Setting up workload for user
+  debug:
+    msg: "Setting up workload for user ocp_username = {{ ocp_username }}"
+
+# create codeready namespace
+- name: create quarkus-cafe namespace
+  k8s:
+    state: present
+    kind: Project
+    api_version: project.openshift.io/v1
+    definition:
+      metadata:
+        name: "{{ project_namespace }}"
+        annotations:
+          openshift.io/description: ""
+          openshift.io/display-name: "{{ project_namespace }}"
+
+- name: AMQ Streams installation
+  include_tasks: amq-streams-install.yml
+
+- name: Configure quarkus-cafe-barista Application
+  include_tasks: quarkus-cafe-barista.yml
+
+- name: Configure quarkus-cafe-core Application
+  include_tasks: quarkus-cafe-core.yaml
+
+- name: Configure quarkus-cafe-kitchen Application
+  include_tasks: quarkus-cafe-kitchen.yaml
+
+- name: Configure quarkus-cafe-web Application
+  include_tasks: quarkus-cafe-web.yaml
+
+- name: Configure quarkus-cafe-customermock Application
+  include_tasks: quarkus-cafe-customermock.yaml
+
+# Leave this as the last task in the playbook.
+# --------------------------------------------
+- name: workload tasks complete
+  debug:
+    msg:  "Workload Tasks Complete"
+  when: not silent|bool

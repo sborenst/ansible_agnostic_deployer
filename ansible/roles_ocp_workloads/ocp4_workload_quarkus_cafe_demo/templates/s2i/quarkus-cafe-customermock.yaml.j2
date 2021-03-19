@@ -1,0 +1,163 @@
+apiVersion: v1
+items:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    labels:
+      app: quarkus-cafe-customermock
+      app.kubernetes.io/component: quarkus-cafe-customermock
+      app.kubernetes.io/instance: quarkus-cafe-customermock
+    name: quarkus-cafe-customermock
+    namespace: {{ project_namespace }}
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: quarkus-cafe-customermock:latest
+    postCommit: {}
+    resources:
+      limits:
+        cpu: "{{ quarkus_build_cpu_limit }}"
+        memory: {{ quarkus_build_memory_limit }}
+      requests:
+        cpu: "{{ quarkus_build_cpu_limit }}"
+        memory: {{ quarkus_build_memory_limit }}
+    runPolicy: Serial
+    source:
+      contextDir: quarkus-cafe-customermock
+      git:
+        uri: {{ git_url }}
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: {{ quarkus_image_stream_name }}
+      type: Source
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - github:
+        secret: hq-QUtE-HFWlu_x0Rn7P
+      type: GitHub
+    - generic:
+        secret: 3nXz35jaIVIbFc5QbR4g
+      type: Generic
+    - type: ConfigChange
+    - imageChange:
+        lastTriggeredImageID: quay.io/quarkus/ubi-quarkus-native-s2i@sha256:3cd4bc7641d13cb2a8412a66eddd2e1f125bdb16426da7a26d59dae7a0c2fc55
+      type: ImageChange
+  status:
+    lastVersion: 1
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    generation: 1
+    labels:
+      app: quarkus-cafe-customermock
+      app.kubernetes.io/component: quarkus-cafe-customermock
+      app.kubernetes.io/instance: quarkus-cafe-customermock
+    name: quarkus-cafe-customermock
+    namespace: {{ project_namespace }}
+  spec:
+    lookupPolicy:
+      local: false
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    generation: 3
+    labels:
+      app: quarkus-cafe-customermock
+      app.kubernetes.io/component: quarkus-cafe-customermock
+      app.kubernetes.io/instance: quarkus-cafe-customermock
+    name: quarkus-cafe-customermock
+    namespace: {{ project_namespace }}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      deploymentconfig: quarkus-cafe-customermock
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          deploymentconfig: quarkus-cafe-customermock
+      spec:
+        containers:
+        - env:
+          - name: REST_URL
+            value: http://quarkus-cafe-web-{{ project_namespace }}.apps.{{ domain }}/
+          image: image-registry.openshift-image-registry.svc:5000/{{ project_namespace }}/quarkus-cafe-customermock@sha256:9bb02c8e9f33a5531260eee923972e6308ac74f6e0ec0d2afac3f25477925cba
+          imagePullPolicy: Always
+          name: quarkus-cafe-customermock
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - quarkus-cafe-customermock
+        from:
+          kind: ImageStreamTag
+          name: quarkus-cafe-customermock:latest
+          namespace: {{ project_namespace }}
+        lastTriggeredImage: image-registry.openshift-image-registry.svc:5000/{{ project_namespace }}/quarkus-cafe-customermock@sha256:9bb02c8e9f33a5531260eee923972e6308ac74f6e0ec0d2afac3f25477925cba
+      type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: "2020-04-19T19:02:11Z"
+    labels:
+      app: quarkus-cafe-customermock
+      app.kubernetes.io/component: quarkus-cafe-customermock
+      app.kubernetes.io/instance: quarkus-cafe-customermock
+    name: quarkus-cafe-customermock
+    namespace: {{ project_namespace }}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: quarkus-cafe-customermock
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""

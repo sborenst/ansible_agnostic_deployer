@@ -2,8 +2,8 @@
 ## Deploy Gogs Git Server
 - name: deploy gogs from template (persistent)
   shell: |
-    {{ openshift_cli }} new-app -f https://raw.githubusercontent.com/OpenShiftDemos/gogs-openshift-docker/master/openshift/gogs-persistent-template.yaml \
-        --param=HOSTNAME={{ gogs_route }} \
+    {{ openshift_cli }} new-app -f https://raw.githubusercontent.com/tosin2013/gogs-openshift-docker/master/openshift/gogs-persistent-template.yaml \
+        --param=HOSTNAME=gogs-gogs.{{ocp_apps_domain}} \
         --param=GOGS_VERSION={{ gogs_image_version }} \
         --param=SKIP_TLS_VERIFY={{ skip_tls_verify }} \
         --param=APPLICATION_NAME={{ gogs_service_name }} \
@@ -12,8 +12,8 @@
 
 - name: deploy gogs from template (ephemeral)
   shell: |
-    {{ openshift_cli }} new-app -f https://raw.githubusercontent.com/OpenShiftDemos/gogs-openshift-docker/master/openshift/gogs-template.yaml \
-        --param=HOSTNAME={{ gogs_route }} \
+    {{ openshift_cli }} new-app -f https://raw.githubusercontent.com/tosin2013/gogs-openshift-docker/master/openshift/gogs-template.yaml \
+        --param=HOSTNAME=gogs-gogs.{{ocp_apps_domain}} \
         --param=GOGS_VERSION={{ gogs_image_version }} \
         --param=SKIP_TLS_VERIFY={{ skip_tls_verify }} \
         --param=APPLICATION_NAME={{ gogs_service_name }} \
@@ -23,9 +23,9 @@
 - name: set cpu and mem 
   shell: "{{ openshift_cli }} set resources dc/{{ gogs_service_name }} --limits=cpu={{ max_cpu }},memory={{ max_mem }} --requests=cpu={{ min_cpu }},memory={{ min_mem }} -n {{ gogs_project_name }}"
 
-- name: wait for gogs postgresql to be running
+- name: wait for gogs application to start 
   uri:
-    url: http://{{ gogs_route }}
+    url: http://gogs-gogs.{{ocp_apps_domain}}
     status_code: 200
   register: result
   until: result.status == 200

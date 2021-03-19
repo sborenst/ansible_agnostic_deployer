@@ -1,0 +1,29 @@
+- name: Copying over quarkus-cafe-customermock application
+  template:
+    src: templates/docker/quarkus-cafe-customermock.yaml.j2
+    dest:  "{{ config_location }}/quarkus-cafe-customermock.yaml"
+    owner: "{{ default_owner }}"
+    group: "{{ default_group }}"
+    mode: 0666
+
+- name: Create quarkus-cafe-customermock instance
+  k8s:
+    state: present
+    src: "{{ config_location }}/quarkus-cafe-customermock.yaml"
+
+- name: Waiting for quarkus-cafe-customermock deployment
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - app = quarkus-cafe-customermocker
+    field_selectors:
+      - status.phase=Running
+  register: r_customermock_status
+  retries: 120
+  delay: 15
+  until: r_customermock_status.resources | list | length == 1
+
+- name: displaying quarkus-cafe-customermock deployment status
+  debug:
+    var: r_customermock_status.resources[0].status.phase
+  ignore_errors: false

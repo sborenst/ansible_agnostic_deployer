@@ -1,74 +1,103 @@
 ---
+- name: check if OpenShift Container Storage exists
+  shell: "{{ openshift_cli }} project openshift-storage"
+  register: storage_result
+  ignore_errors: true
+  changed_when: false
+
+- name: Setting OpenShift Container Storage fact
+  set_fact:
+    storage_result: "{{ storage_result.stdout }}"
+
+- name: Create OpenShift Container Storage
+  command: "{{ openshift_cli }} create -f {{ item }} -n openshift-storage" 
+  args:
+    chdir: "{{ tmp_dir }}"
+  with_items:
+    - openshift-storage-operator.yml
+  when: storage_result == ""
+
+- name: Waiting for  Create OpenShift Container Storage operator to complete
+  shell: |
+    set -o pipefail &&  {{ openshift_cli }} get csv -n openshift-storage 
+  register: operator_status
+  until: "'Succeeded' in operator_status.stdout"
+  retries: 60
+  delay: 15
+  args:
+    executable: /bin/bash
+  when: storage_result == ""
 
 - name: create the quay-enterprise project
   command: "{{ openshift_cli }} new-project quay-enterprise"
 
 - name: clone the quay operator project
-  git:
-    repo: https://github.com/sabre1041/quay-operator.git
+  ansible.builtin.git:
+    repo: 'https://github.com/quay/quay-operator.git'
     dest: "{{ tmp_dir }}/quay-operator"
-
-- name: Explicitly switch to the correct commit
-  command: "git checkout 4ba1d1620e92776dd40decad9e8d2cc5ac49df7f"
-  args:
-    chdir: "{{ tmp_dir }}/quay-operator"
-
-- name: Update operator version
-  replace:
-    path: "{{ tmp_dir }}/quay-operator/deploy/operator.yaml"
-    regexp: "image: quay.io/redhat-cop/quay-operator:latest"
-    replace: "image: quay.io/redhat-cop/quay-operator:v0.0.1"
+    version: master
 
 - name: Create openshift quay objects
-  command: "{{ openshift_cli }} create -f {{ item }}"
+  command: "{{ openshift_cli }} create -f {{ item }} -n openshift-marketplace"
   args:
     chdir: "{{ tmp_dir }}/quay-operator"
   with_items:
-    - deploy/crds/cop_v1alpha1_quayecosystem_crd.yaml
-    - deploy/service_account.yaml
-    - deploy/cluster_role.yaml
-    - deploy/cluster_role_binding.yaml
-    - deploy/role.yaml
-    - deploy/role_binding.yaml
-    - deploy/operator.yaml
-  ignore_errors: true
+    - deploy/quay-operator.catalogsource.yaml
 
-- name: grant admin roles...
-  command: "{{ openshift_cli }} adm policy add-role-to-user admin system:serviceaccount:quay-enterprise:quay-operator -n quay-enterprise"
-
-- name: create the quay secret for pulling the image
-  command: "{{ openshift_cli }} create secret docker-registry coreos-pull-secret --docker-server=quay.io  --docker-username='{{ quay_pull_user }}' --docker-password='{{ quay_pull_password }}'"
-
-- name: Delete quay limitrange
-  command: "{{ openshift_cli }} delete limitrange --all -n quay-enterprise"
-  ignore_errors: true
-
-- name: deploy the quay operator
-  command: "{{ openshift_cli }} create -f quay_cr.yml"
+- name: Waiting for quay-operator to complete
+  shell: |
+    set -o pipefail &&  {{ openshift_cli }} get packagemanifest --all-namespaces | grep quay | wc -l
+  register: operator_status
+  until: "'3' in operator_status.stdout"
+  retries: 60
+  delay: 15
   args:
-    chdir: "{{ tmp_dir}}/files"
+    executable: /bin/bash
+
+- name: Create openshift quay objects
+  command: "{{ openshift_cli }} create -f {{ item }} -n quay-enterprise"
+  args:
+    chdir: "{{ tmp_dir }}/quay-operator"
+  with_items:
+    - deploy/quay-operator.operatorgroup.yaml
+    - deploy/quay-operator.subscription.yaml
+  ignore_errors: true
+
+- name: check if NooBaa exists
+  shell: " {{ openshift_cli }} get -n openshift-storage noobaas noobaa | grep noobaa | grep Ready| wc -l"
+  register: noobaa_result
+  ignore_errors: true
+  changed_when: false
+
+- name: Setting NooBaa arguments
+  set_fact:
+   noobaa_fact: "{{ noobaa_result.stdout }}"
+
+- name: Create NooBaa object in openshift-storage namespace
+  command: "{{ openshift_cli }} create -f kustomize/components/objectstorage/quay-datastore.noobaa.yaml -n openshift-storage"
+  args:
+    chdir: "{{ tmp_dir }}/quay-operator"
+  when: noobaa_fact != "'1'"
+
+- name: Waiting for noobaa to complete
+  shell: |
+    set -o pipefail &&  {{ openshift_cli }} get -n openshift-storage noobaas noobaa | grep noobaa | grep Ready| wc -l
+  register: operator_status
+  until: "'1' in operator_status.stdout"
+  retries: 60
+  delay: 15
+  args:
+    executable: /bin/bash
+  when: noobaa_fact != "'1'"
+
+- name: Create QuayRegistry instance
+  command: "{{ openshift_cli }} create -f config/samples/managed.quayregistry.yaml  -n quay-enterprise"
+  args:
+    chdir: "{{ tmp_dir }}/quay-operator"
 
 - name: wait for quay to deploy
-  shell:  "{{ openshift_cli }} get pods  -n quay-enterprise | grep quayecosystem-quay"
+  shell:  "{{ openshift_cli }} get pods  -n quay-enterprise | grep skynet-quay-app"
   register: result
   until: result.stdout.find("Running") != -1
   retries: 30
   delay: 10
-
-- name: create a secure route for quay
-  command: "{{ openshift_cli }} create route edge quay-secure --service=quayecosystem-quay -n quay-enterprise"
-  ignore_errors: true
-
-- name: create quay-mysql project
-  command: "{{ openshift_cli }} new-project quay-mysql"
-
-- name: Remove quay mysql limitrange
-  command: "{{ openshift_cli }} delete limitrange --all -n quay-mysql"
-  ignore_errors: true
-
-- name: deploy quay mysql
-  command:  "{{ openshift_cli }} new-app --name mysql mysql-persistent -p MYSQL_USER=quay -p MYSQL_PASSWORD=quay -p MYSQL_DATABASE=quay -p MYSQL_ROOT_PASSWORD=quay -p VOLUME_CAPACITY=10Gi -n quay-mysql"
-  
-- name: wait for quay mysql to deploy
-  command: "{{ openshift_cli }} rollout status dc/mysql -n quay-mysql"
-  async: 300

@@ -1,0 +1,182 @@
+apiVersion: v1
+items:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: quarkus-cafe-web:latest
+    postCommit: {}
+    resources:
+      limits:
+        cpu: "{{ quarkus_build_cpu_limit }}"
+        memory: {{ quarkus_build_memory_limit }}
+      requests:
+        cpu: "{{ quarkus_build_cpu_limit }}"
+        memory: {{ quarkus_build_memory_limit }}
+    runPolicy: Serial
+    source:
+      contextDir: quarkus-cafe-web
+      git:
+        uri: {{ git_url }}
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: {{ quarkus_image_stream_name }}
+      type: Source
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - github:
+        secret: im_q5SVY3MxC28Km7RZx
+      type: GitHub
+    - generic:
+        secret: DzpubXIPisZxrqjnkQRZ
+      type: Generic
+    - type: ConfigChange
+    - imageChange:
+        lastTriggeredImageID: quay.io/quarkus/ubi-quarkus-native-s2i@sha256:f2dd51bafe51a8fb3bc39302e1ae4ec56ae23c531fbccb9632bfae72d079d9f0
+      type: ImageChange
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    generation: 1
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    lookupPolicy:
+      local: false
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    generation: 3
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      deploymentconfig: quarkus-cafe-web
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        labels:
+          deploymentconfig: quarkus-cafe-web
+      spec:
+        containers:
+        - env:
+          - name: STREAM_URL
+            value: {{ kafka_stream_url }}
+          - name: KAFKA_BOOTSTRAP_SERVERS
+            value: {{ kafka_cluster_name }}-kafka-bootstrap:9092
+          image: image-registry.openshift-image-registry.svc:5000/{{ project_namespace }}/quarkus-cafe-web@sha256:331e77d27b246846ebac62451e27042bf0cadd0af4792ad4b0fafbece45b293f
+          imagePullPolicy: Always
+          name: quarkus-cafe-web
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - quarkus-cafe-web
+        from:
+          kind: ImageStreamTag
+          name: quarkus-cafe-web:latest
+          namespace: {{ project_namespace }}
+        lastTriggeredImage: image-registry.openshift-image-registry.svc:5000/{{ project_namespace }}/quarkus-cafe-web@sha256:331e77d27b246846ebac62451e27042bf0cadd0af4792ad4b0fafbece45b293f
+      type: ImageChange
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/host.generated: "true"
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    host: quarkus-cafe-web-{{ project_namespace }}.apps.{{ domain }}
+    port:
+      targetPort: 8080-tcp
+    subdomain: ""
+    to:
+      kind: Service
+      name: quarkus-cafe-web
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: quarkus-cafe-web
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""

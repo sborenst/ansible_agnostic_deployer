@@ -1,36 +1,51 @@
-- name: "Deploy sonarqube postgres"
-  command: "{{ openshift_cli }} new-app openshift/postgresql-persistent -p VOLUME_CAPACITY=10Gi -p POSTGRESQL_USER=sonar -p POSTGRESQL_PASSWORD=sonar -p POSTGRESQL_DATABASE=sonar --name postgresql-sonarqube -n {{ admin_project }}"
+# create project
+- name: check if sonarqube project {{ sonarqube_project_name }} exists
+  shell: "{{ openshift_cli }} project {{ sonarqube_project_name }}"
+  register: sonarqube_project_result
+  ignore_errors: true
+  changed_when: false
 
-- name: "Wait for sonarqube postgres to deploy"
-  command: "{{ openshift_cli }} rollout status dc/postgresql -n {{ admin_project }}"
-  async: 300
-        
-- name: "Create the sonarqube build config"
-  command: "{{ openshift_cli }} new-build --name=sonarqube --binary --strategy=docker -n {{ admin_project }}"
+- name: Setting host facts using complex arguments
+  set_fact:
+    sonarqube_project_fact: "{{ sonarqube_project_result.stdout }}"
 
-- name: "Copy over the sonarqube Dockerfile"
-  copy:
-    src: Dockerfile-sonarqube
-    dest: "{{ tmp_dir }}/Dockerfile"
+- name: create sonarqube project {{ sonarqube_project_name }}
+  shell: "{{ openshift_cli }} new-project {{ sonarqube_project_name }} --display-name='{{ sonarqube_project_display_name }}' --description='{{ sonarqube_project_desc }}'"
+  when: sonarqube_project_fact == ""
 
-- name: "Build the sonarqube container" 
-  command: "{{ openshift_cli }} start-build --from-file={{ tmp_dir }}/Dockerfile bc/sonarqube --follow --wait -n {{ admin_project }}"
+# install sonarqube
+- name: check if sonarqube exists
+  shell: "{{ openshift_cli }} get service {{ sonarqube_service_name }} -n {{ sonarqube_project_name }}"
+  register: install_sonarqube
+  ignore_errors: true
+  changed_when: false
 
-- name: "Deploy the sonarqube container"
-  command: "{{ openshift_cli }} new-app -i sonarqube  --env=SONARQUBE_JDBC_USERNAME=sonar --env=SONARQUBE_JDBC_PASSWORD=sonar --env=SONARQUBE_JDBC_URL=jdbc:postgresql://postgresql/sonar -n {{ admin_project }}"
-
-- name: "Expose the sonarqube route"
-  command: "{{ openshift_cli }} expose svc/sonarqube -n {{ admin_project }}"
+- name: Setting sonarqube is installed fact
+  set_fact:
+    install_sonarqube_fact: "{{ install_sonarqube.stdout }}"
   
-- name: "Enable sonarqube persistent storage"
-  command: "{{ openshift_cli }} set volume dc/sonarqube --name=sonarqube-dynetics-volume-1 --add --overwrite -t pvc --claim-name=sonarqube-data --claim-size=10Gi -n {{ admin_project }}"
 
-- name: "Create sonarqube readiness probe"
-  command: "{{ openshift_cli }} set probe dc/sonarqube --readiness --failure-threshold=3 --initial-delay-seconds=3  --period-seconds=5 --timeout-seconds=10  --get-url=http://:9000 -n {{ admin_project }}"
+- name: deploy sonarqube from template (persistent)
+  shell: |
+    {{ openshift_cli }} new-app -fhttps://raw.githubusercontent.com/tosin2013/sonarqube-openshift-docker/master/sonarqube-postgresql-template.yaml \
+        --param=SONARQUBE_VERSION={{sonarqube_version}} \
+        -n {{ sonarqube_project_name }}
+  ignore_errors: true
+  when: not ephemeral|bool
 
-- name: "Create sonarqube liveness probe"
-  command: "{{ openshift_cli }} set probe dc/sonarqube --liveness --failure-threshold=3 --initial-delay-seconds=30  --period-seconds=5 --timeout-seconds=10  --get-url=http://:9000 -n {{ admin_project }}"
+- name: deploy sonarqube from template (ephemeral)
+  shell: |
+    {{ openshift_cli }} new-app -f https://raw.githubusercontent.com/tosin2013/sonarqube-openshift-docker/master/sonarqube-template.yaml \
+        --param=SONARQUBE_VERSION={{sonarqube_version}} \
+        -n {{ sonarqube_project_name }}
+  ignore_errors: true
+  when: ephemeral|bool
 
-- name: "Waiting for sonarqube pod to be available..."
-  command: "{{ openshift_cli }} rollout status dc/sonarqube -n {{ admin_project }}"
-  async: 300
+- name: wait for sonarqube  to be running
+  uri:
+    url: http://sonarqube-sonarqube.{{ocp_apps_domain}}
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: "{{ sonarqube_deploy_retry_count }}"
+  delay: "{{ sonarqube_deploy_retry_delay }}"

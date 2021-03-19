@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: Template
 labels:
-  app: ecommerce-build-template
-  template: ecommerce-build-template
-message: A Jenkins pipeline for building the ecommerce application
+  app: hardening-template
+  template: hardening-template
+message: A Jenkins pipeline for hardening openjdk 8
 metadata:
-  name: ecommerce-build-template
+  name: hardening-template
   annotations:
     description: |-
-      A Jenkins pipeline for building the ecommerce application
+      A Jenkins pipeline for hardening openjdk
     iconClass: icon-jenkins
-    openshift.io/display-name: Ecommerce Image Pipeline
+    openshift.io/display-name: OpenJDK Hardening Pipeline
     tags: instant-app,jenkins
 parameters:
 - description: GUID
@@ -37,8 +37,8 @@ objects:
   kind: BuildConfig
   metadata:
     labels:
-      app: ${GOGS_USER}-ecommerce-pipeline
-    name: ${GOGS_USER}-ecommerce-pipeline
+      app: openjdk-hardening-pipeline
+    name: openjdk-hardening-pipeline
   spec:
     failedBuildsHistoryLimit: 5
     nodeSelector: {}
@@ -52,7 +52,7 @@ objects:
         ref: ${GIT_BRANCH}
     strategy:
       jenkinsPipelineStrategy:
-        jenkinsfilePath: Jenkinsfile
+        jenkinsfilePath: hardening_pipeline/Jenkinsfile
         env:
         - name: JENKINS_GIT_BRANCH
           value: ${GIT_BRANCH}
@@ -74,5 +74,5 @@ objects:
           value: ${INTERNAL_REGISTRY}
     triggers:
     - generic:
-        secret: ${GOGS_USER}-ecommerce-pipeline
+        secret: ${GOGS_USER}-openjdk-hardening-pipeline
       type: Generic

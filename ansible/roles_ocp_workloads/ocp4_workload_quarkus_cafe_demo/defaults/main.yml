@@ -1,0 +1,18 @@
+---
+become_override: False
+ocp_username: wkulhane-redhat.com
+silent: False
+default_owner: "{{ ansible_user }}"
+default_group: "users"
+insecure_skip_tls_verify: true
+project_namespace: quarkus-cafe-demo
+git_url: https://github.com/jeremyrdavis/quarkus-cafe-demo.git
+amqstartingCSV: amqstreams.v1.5.3
+config_location: "/tmp/"
+kafka_cluster_name: cafe-cluster
+quarkus_build_memory_limit: 6Gi # Default 6Gi
+quarkus_build_cpu_limit: 1 # Default 1
+quarkus_core_build_memory_limit:  8Gi # Default 8Gi
+quarkus_image_stream_name: ubi-quarkus-native-s2i:20.0.0-java11
+kafka_stream_url: http://quarkus-cafe-web-{{ project_namespace }}.apps.{{ domain }}/dashboard/stream
+cors_origin: http://quarkus-cafe-web-{{ project_namespace }}.apps.{{ domain }}

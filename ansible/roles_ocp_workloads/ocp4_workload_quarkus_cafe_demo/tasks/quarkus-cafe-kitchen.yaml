@@ -1,0 +1,31 @@
+- name: Copying over quarkus-cafe-kitchen application
+  template:
+    src: templates/docker/quarkus-cafe-kitchen.yaml.j2
+    dest:  "{{ config_location }}/quarkus-cafe-kitchen.yaml"
+    owner: "{{ default_owner }}"
+    group: "{{ default_group }}"
+    mode: 0666
+
+- name:  Create quarkus-cafe-kitchen instance
+  k8s:
+    state: present
+    src: "{{ config_location }}/quarkus-cafe-kitchen.yaml"
+
+- name: Waiting for quarkus-cafe-kitchen deployment
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - app = quarkus-cafe-kitchen
+    field_selectors:
+      - status.phase=Running
+  register: r_kitchen_status
+  retries: 120
+  delay: 15
+  until: r_kitchen_status.resources | list | length == 1
+
+- name: displaying quarkus-cafe-kitchen deployment status
+  debug:
+    var: r_kitchen_status.resources[0].status.phase
+  ignore_errors: false
+
+

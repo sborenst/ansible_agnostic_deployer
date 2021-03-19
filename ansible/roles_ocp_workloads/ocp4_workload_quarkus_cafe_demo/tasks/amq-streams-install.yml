@@ -1,0 +1,93 @@
+- name: Copying over AMQ Subscription
+  template:
+    src: templates/amq-sub.yaml.j2
+    dest:  "{{ config_location }}/amq-sub.yaml"
+    owner: "{{ default_owner }}"
+    group: "{{ default_group }}"
+    mode: 0666
+
+
+- name: Create a Deployment by reading the definition from a local file
+  k8s:
+    state: present
+    src: "{{ config_location }}/amq-sub.yaml"
+
+# wait for AMQ to be ready
+- name: Wait for AMQ CRD to be ready
+  k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ project_namespace }}"
+    field_selectors:
+      - metadata.name={{ amqstartingCSV }}
+  register: r_amq_crd
+  retries: 20
+  delay: 60
+  until: r_amq_crd.resources | list | length == 1
+
+- name: Display AMQ install status
+  debug:
+    var: r_amq_crd.resources[0].status
+
+- name: Setting amq installed fact
+  set_fact:
+    amq_installed:  "{{ r_amq_crd.resources[0].status }}"
+  ignore_errors: false
+
+- name: fail when AMQ subscription if not ready
+  fail:
+    msg:  AMQ subscription is not Present on cluster
+  when: amq_installed is not defined
+
+- name: Copying over Kafka config
+  template:
+    src: templates/amq-kafka-instance.yaml.j2
+    dest:  "{{ config_location }}/amq-kafka-instance.yaml"
+    owner: "{{ default_owner }}"
+    group: "{{ default_group }}"
+    mode: 0666
+
+- name: Create a Deployment by reading the definition from a local file
+  k8s:
+    state: present
+    src: "{{ config_location }}/amq-kafka-instance.yaml"
+
+- name: Search for all Pods labeled  cafe-cluster-zookeeper
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - "strimzi.io/name=cafe-cluster-zookeeper"
+    field_selectors:
+      - status.phase=Running
+  register: r_zookeeper_status
+  retries: 200
+  delay: 10
+  until: r_zookeeper_status.resources  | list | length == 3
+
+
+- name: Search for all Pods labeled  cafe-cluster-kafka
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - "strimzi.io/name=cafe-cluster-kafka"
+    field_selectors:
+      - status.phase=Running
+  register: r_kafka_status
+  retries: 200
+  delay: 10
+  until: r_kafka_status.resources  | list | length == 3
+
+- name: Copying over kafka topics
+  template:
+    src: templates/amq-kafka-topics.yaml.j2
+    dest:  "{{ config_location }}/amq-kafka-topics.yaml"
+    owner: "{{ default_owner }}"
+    group: "{{ default_group }}"
+    mode: 0666
+
+- name: Create kafka topics
+  k8s:
+    state: present
+    src: "{{ config_location }}/amq-kafka-topics.yaml"
+
+

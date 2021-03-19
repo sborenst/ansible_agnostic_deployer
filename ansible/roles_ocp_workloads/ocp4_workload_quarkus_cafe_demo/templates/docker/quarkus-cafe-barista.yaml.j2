@@ -1,0 +1,104 @@
+apiVersion: v1
+items:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/image.dockerRepositoryCheck: "2020-05-28T18:43:15Z"
+    generation: 2
+    labels:
+      app: quarkus-cafe-barista
+      app.kubernetes.io/component: quarkus-cafe-barista
+      app.kubernetes.io/instance: quarkus-cafe-barista
+      app.kubernetes.io/part-of: quarkus-cafe
+      quarkus-cafe: ""
+    name: quarkus-cafe-barista
+    namespace: {{ project_namespace }}
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+        openshift.io/imported-from: jeremydavis/quarkus-cafe-barista
+      from:
+        kind: DockerImage
+        name: jeremydavis/quarkus-cafe-barista:2.4.0
+      generation: 2
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: Source
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: quarkus-cafe-barista-deployment
+    labels:
+      app: quarkus-cafe-barista
+      app.kubernetes.io/component: quarkus-cafe-barista
+      app.kubernetes.io/instance: quarkus-cafe-barista
+      app.kubernetes.io/part-of: quarkus-cafe
+      app.openshift.io/runtime-namespace: {{ project_namespace }}
+      quarkus-cafe: ""
+    namespace: {{ project_namespace }}
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: quarkus-cafe-barista
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: quarkus-cafe-barista
+      spec:
+        containers:
+        - name: quarkus-cafe-barista
+          image: jeremydavis/quarkus-cafe-barista:2.4.0
+          ports:
+          - containerPort: 8778
+            protocol: TCP
+          - containerPort: 9779
+            protocol: TCP
+          env:
+          - name: KAFKA_BOOTSTRAP_URLS
+            value: {{ kafka_cluster_name }}-kafka-bootstrap:9092
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    labels:
+      app: quarkus-cafe-barista
+      app.kubernetes.io/component: quarkus-cafe-barista
+      app.kubernetes.io/instance: quarkus-cafe-barista
+      app.kubernetes.io/name: ""
+      app.kubernetes.io/part-of: quarkus-cafe
+      app.openshift.io/runtime: ""
+      app.openshift.io/runtime-version: latest
+      quarkus-cafe: ""
+    name: quarkus-cafe-barista
+    namespace: {{ project_namespace }}
+  spec:
+    ports:
+    - name: 8778-tcp
+      port: 8778
+      protocol: TCP
+      targetPort: 8778
+    - name: 9779-tcp
+      port: 9779
+      protocol: TCP
+      targetPort: 9779
+    selector:
+      app: quarkus-cafe-barista
+      deploymentconfig: quarkus-cafe-barista
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:

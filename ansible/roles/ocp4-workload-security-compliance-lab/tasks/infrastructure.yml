@@ -8,16 +8,17 @@
 - name: Install OpenSCAP tools
   yum:
     name:
-      - docker 
+      - podman 
+      - slirp4netns
       - openscap-utils
       - openscap-scanner
       - scap-security-guide
-      - atomic
   delegate_to: "{{ bastion_internal }}"
+  ignore_errors: true 
 
-- name: Ensure docker group exists
+- name: Ensure podman group exists
   group:
-    name: docker
+    name: podman
     state: present
   delegate_to: "{{ bastion_internal }}"
 
@@ -42,28 +43,30 @@
   set_fact:
     ocp_registry_route: "{{ image_route.stdout }}"
 
-- name: Add exposed registry as insecure
+- name: add exposed registry as insecure
   template:
-    src: daemon.json.j2
-    dest: /etc/docker/daemon.json
+    src: registries.conf.j2
+    dest: /etc/containers/registries.conf
     mode: '0644'
     backup: yes
+  register: reg_result
   delegate_to: "{{ bastion_internal }}"
 
-- name: Enable / restart docker
-  service: 
-    name: docker
-    enabled: yes
-    state: restarted
-  delegate_to: "{{ bastion_internal }}"
+#- name: Enable / restart podman
+#  service: 
+#    name: podman
+#    enabled: yes
+#    state: restarted
+#  delegate_to: "{{ bastion_internal }}"
 
-- name: Allow group to use oscap-docker without sudo password
-  lineinfile:
-    dest: /etc/sudoers
-    line: "%docker ALL=NOPASSWD: /usr/bin/oscap-docker"
-    validate: '/usr/sbin/visudo -cf %s'
-  become: true
-  delegate_to: "{{ bastion_internal }}"
+
+#- name: Allow group to use oscap-docker without sudo password
+#  lineinfile:
+#    dest: /etc/sudoers
+#    line: "%docker ALL=NOPASSWD: /usr/bin/oscap-docker"
+#    validate: '/usr/sbin/visudo -cf %s'
+#  become: true
+#  delegate_to: "{{ bastion_internal }}"
 
 - name: Create custom jenkins image
   shell: |
@@ -78,7 +81,7 @@
   delay: 20
 
 - name: Create OWASP ZAP Image
-  command: "{{ openshift_cli }} new-build --name owasp-zap -l 'role=jenkins-slave' https://github.com/RedHatDemos/SecurityDemos.git --context-dir=2019Labs/ProactiveSecurityCompliance/OpenShiftSecurityPipeline/jenkins-slave-zap -n openshift"
+  command: "{{ openshift_cli }} new-build --name owasp-zap -l 'role=jenkins-slave' {{ repo_url }} --context-dir=2019Labs/ProactiveSecurityCompliance/OpenShiftSecurityPipeline/jenkins-slave-zap -n openshift"
   ignore_errors: true
 
 - name: Wait for OWASP ZAP build to finish
@@ -135,7 +138,7 @@
   set_fact:
     gogs_project_name: "{{ admin_project }}"
     gogs_route: "{{ gogs_hostname }}"
-    gogs_image_version: 0.11.34
+    gogs_image_version:  "{{ gogs_image_version }}"
     gogs_admin_user: "{{ user_gogs_admin }}"
     gogs_admin_password: "{{ user_gogs_password }}"
     gogs_user: "{{ user_gogs_user }}"

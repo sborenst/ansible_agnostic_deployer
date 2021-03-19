@@ -1,0 +1,152 @@
+apiVersion: v1
+items:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/image.dockerRepositoryCheck: "2020-06-05T14:59:07Z"
+    generation: 2
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+      app.kubernetes.io/part-of: quarkus-cafe
+      jeremydavis/quarkus-cafe-web: ""
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+        openshift.io/imported-from: jeremydavis/quarkus-cafe-web
+      from:
+        kind: DockerImage
+        name: jeremydavis/quarkus-cafe-web:2.4.0
+      generation: 2
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: Source
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      alpha.image.policy.openshift.io/resolve-names: '*'
+      deployment.kubernetes.io/revision: "5"
+      image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"quarkus-cafe-web:latest","namespace":"quarkus-cafe-demo"},"fieldPath":"spec.template.spec.containers[?(@.name==\"quarkus-cafe-web\")].image"}]'
+      openshift.io/generated-by: OpenShiftWebConsole
+    generation: 5
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+      app.kubernetes.io/part-of: quarkus-cafe
+      app.openshift.io/runtime-namespace: {{ project_namespace }}
+      jeremydavis/quarkus-cafe-web: ""
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: quarkus-cafe-web
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftWebConsole
+        labels:
+          app: quarkus-cafe-web
+          deploymentconfig: quarkus-cafe-web
+          jeremydavis/quarkus-cafe-web: ""
+      spec:
+        containers:
+        - env:
+          - name: REST_URL
+            value: http://quarkus-cafe-web-{{ project_namespace}}.apps.{{ domain }}
+          - name: STREAM_URL
+            value: {{ kafka_stream_url }}
+          - name: CORS_ORIGINS
+            value: {{ cors_origin }}
+          - name: KAFKA_BOOTSTRAP_SERVERS
+            value: {{ kafka_cluster_name }}-kafka-bootstrap:9092
+          image: jeremydavis/quarkus-cafe-web:2.4.0
+          imagePullPolicy: Always
+          name: quarkus-cafe-web
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/host.generated: "true"
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+      app.kubernetes.io/name: ""
+      app.kubernetes.io/part-of: quarkus-cafe
+      app.openshift.io/runtime: ""
+      app.openshift.io/runtime-version: latest
+      jeremydavis/quarkus-cafe-web: ""
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    host: quarkus-cafe-web-{{ project_namespace }}.apps.{{ domain }}
+    port:
+      targetPort: 8080-tcp
+    to:
+      kind: Service
+      name: quarkus-cafe-web
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    labels:
+      app: quarkus-cafe-web
+      app.kubernetes.io/component: quarkus-cafe-web
+      app.kubernetes.io/instance: quarkus-cafe-web
+      app.kubernetes.io/name: ""
+      app.kubernetes.io/part-of: quarkus-cafe
+      app.openshift.io/runtime: ""
+      app.openshift.io/runtime-version: latest
+      jeremydavis/quarkus-cafe-web: ""
+    name: quarkus-cafe-web
+    namespace: {{ project_namespace }}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: quarkus-cafe-web
+      deploymentconfig: quarkus-cafe-web
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""

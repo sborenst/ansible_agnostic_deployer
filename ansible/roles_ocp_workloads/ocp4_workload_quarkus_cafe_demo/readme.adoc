@@ -1,0 +1,59 @@
+= ocp-workload-quarkus-cafe-demo-role - Quarkus Cafe Workload Role
+
+== Role overview
+
+The Quarkus Cafe Role will deploy an event-driven demo application built with Quarkus, AMQ Streams (Kafka), and MongoDB. The application deploys to OpenShift (Kubernetes.)
+The source code for the  [quarkus-cafe-demo](https://github.com/jeremyrdavis/quarkus-cafe-demo) application can be found  [here](https://github.com/jeremyrdavis/quarkus-cafe-demo).
+
+
+=== Deploy a Workload with the `ocp-workload-quarkus-cafe-demo-role` playbook [Mostly for testing]
+
+. Set up Environment Variables for the bastion you want to run this role on.
++
+[source,yaml]
+----
+TARGET_HOST="bastion.dev.openshift.opentlc.com"
+OCP_USERNAME="openshiftuser"
+ANSIBLE_USER="ec2-user"
+WORKLOAD="ocp4_workload_quarkus_cafe_demo"
+GUID=1001
+SSH_KEYNAME=sshkeyname.pem
+----
+
+. Finally run the workload passing the input files as parameters:
++
+[source,sh]
+----
+# a TARGET_HOST is specified in the command line, without using an inventory file
+ansible-playbook -i ${TARGET_HOST}, ./configs/ocp-workloads/ocp-workload.yml \
+                 -e"ansible_ssh_private_key_file=/home/${ANSIBLE_USER}/.ssh/${SSH_KEYNAME}" \
+                 -e"ansible_user=${ANSIBLE_USER}" \
+                 -e"ocp_username=${OCP_USERNAME}" \
+                 -e"ocp_workload=${WORKLOAD}" \
+                 -e"guid=${GUID}" \
+                 -e"ocp_user_needs_quota=true" \
+                 -e"domain=cluster-${GUID}.${GUID}.example.opentlc.com" \
+                 -e"ACTION=create"
+----
+
+=== To Delete an environment
+
+----
+TARGET_HOST="bastion.dev.openshift.opentlc.com"
+OCP_USERNAME="openshiftuser"
+ANSIBLE_USER="ec2-user"
+WORKLOAD="ocp4_workload_quarkus_cafe_demo"
+GUID=1001
+SSH_KEYNAME=sshkeyname.pem
+
+# a TARGET_HOST is specified in the command line, without using an inventory file
+ansible-playbook -i ${TARGET_HOST}, ./configs/ocp-workloads/ocp-workload.yml \
+                 -e"ansible_ssh_private_key_file=/home/${ANSIBLE_USER}/.ssh/${SSH_KEYNAME}" \
+                 -e"ansible_user=${ANSIBLE_USER}" \
+                 -e"ocp_username=${OCP_USERNAME}" \
+                 -e"ocp_workload=${WORKLOAD}" \
+                 -e"guid=${GUID}" \
+                 -e"ocp_user_needs_quota=true" \
+                 -e"domain=cluster-${GUID}.${GUID}.example.opentlc.com" \
+                 -e"ACTION=remove"
+----

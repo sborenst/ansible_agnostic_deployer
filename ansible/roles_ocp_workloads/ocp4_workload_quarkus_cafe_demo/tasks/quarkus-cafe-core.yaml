@@ -1,0 +1,72 @@
+- name: Create mongodb instance
+  command: >
+    oc new-app --name=mongodb --template=mongodb-ephemeral \
+      -e MONGODB_USER=mongodb -e MONGODB_PASSWORD=mongodb \
+      -e MONGODB_DATABASE=cafedb -e MONGODB_ADMIN_PASSWORD=mongodb \
+      -n {{ project_namespace }}
+  changed_when: False
+
+- name: Waiting for mongodb deployment to complete
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - openshift.io/deployer-pod-for.name=mongodb-1
+    field_selectors:
+      - status.phase=Succeeded
+  register: r_mongodb_build_status
+  retries: 120
+  delay: 15
+  until: r_mongodb_build_status.resources  | list | length == 1
+
+- name: display mongodb build status
+  debug:
+    var: r_mongodb_build_status.resources[0].status.phase
+  ignore_errors: false
+
+- name: Waiting for mongodb deployment
+  k8s_info:
+    kind: Pod
+    namespace: "{{ project_namespace }}"
+    label_selectors:
+      - name = mongodb
+    field_selectors:
+      - status.phase=Running
+  register: r_mongodb_status
+  retries: 3
+  delay: 15
+  until: r_mongodb_status.resources  | list | length == 1
+
+- name: displaying mongodb deployment status
+  debug:
+    var: r_mongodb_status.resources[0].status.phase
+  ignore_errors: false
+
+- name: Copying over quarkus-cafe-core application
+  template:
+    src: templates/docker/quarkus-cafe-core.yaml.j2
+    dest: "{{ config_location }}/quarkus-cafe-core.yaml"
+    owner: "{{ default_owner }}"
+    group: "{{ default_group }}"
+    mode: 0666
+
+- name: Create quarkus-cafe-core instance
+  k8s:
+    state: present
+    src: "{{ config_location }}/quarkus-cafe-core.yaml"
+
+- name: Waiting for quarkus-cafe-core deployment
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - app = quarkus-cafe-core
+    field_selectors:
+      - status.phase=Running
+  register: r_core_status
+  retries: 120
+  delay: 15
+  until: r_core_status.resources | list | length == 1
+
+- name: displaying quarkus-cafe-core deployment status
+  debug:
+    var: r_core_status.resources[0].status.phase
+  ignore_errors: false

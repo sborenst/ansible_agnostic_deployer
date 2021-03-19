@@ -32,22 +32,55 @@
   with_sequence: start={{user_count_start}} end={{ user_count_end }} format={{ user_format }}
   tags: always
 
-
 # Remove che main project
 - name: Delete che main project
   command: "oc delete project {{ che_project }}"
   ignore_errors: true
   tags: always
 
-# Remove quay-enterprise project
-- name: Delete quay-enterprise project
-  command: oc delete project quay-enterprise
+# Remove quay-operator project
+- name: Create openshift quay objects
+  command: "{{ openshift_cli }} delete -f {{ item }} -n quay-enterprise"
+  args:
+    chdir: "{{ tmp_dir }}/quay-operator"
+  with_items:
+    - ./config/samples/managed.quayregistry.yaml
+    - ./deploy/quay-operator.subscription.yaml
+    - ./deploy/quay-operator.operatorgroup.yaml 
+  ignore_errors: true
+
+- name: Create openshift quay objects
+  command: "{{ openshift_cli }} delete -f ./deploy/quay-operator.catalogsource.yaml -n openshift-marketplace"
+  args:
+    chdir: "{{ tmp_dir }}/quay-operator"
+  ignore_errors: true
+
+
+# Remove gogs project
+- name: Delete gogs project
+  command: oc delete project gogs
   ignore_errors: true
   tags: always
 
-# Remove quay-mysql project
-- name: Delete quay-mysql project
-  command: oc delete project quay-mysql
+- name: delete sonarqube application 
+  command: oc delete all --selector app=sonarqube -n {{ sonarqube_project_name }}
+  ignore_errors: true
+
+# Remove sonarqube project
+- name: Delete sonarqube project
+  command: oc delete project {{ sonarqube_project_name }}
+  ignore_errors: true
+  tags: always
+
+# Remove nexus project
+- name: Delete nexus project
+  command: oc delete project nexus
+  ignore_errors: true
+  tags: always
+
+# Remove quay-enterprise project
+- name: Delete quay-enterprise project
+  command: oc delete project quay-enterprise
   ignore_errors: true
   tags: always
 
@@ -66,6 +99,24 @@
     - "role=jenkins-slave"
   ignore_errors: true
   tags: always
+
+# Remove noobaa
+#- name: remove openshift noobaa
+#  command: "{{ openshift_cli }} delete  -n openshift-storage -f {{ item }}"
+#  args:
+#    chdir: "{{ tmp_dir }}/quay-operator"
+#  with_items:
+#    - ./kustomize/components/objectstorage/quay-datastore.noobaa.yaml
+#  ignore_errors: true
+
+# Remove OpenShift Container Storage
+- name: Delete OpenShift Container Storage
+  command: "{{ openshift_cli }} delete -f {{ item }}  -n openshift-storage"
+  args:
+    chdir: "{{ tmp_dir }}"
+  with_items:
+    - openshift-storage-operator.yml
+  ignore_errors: true
 
 #
 #####

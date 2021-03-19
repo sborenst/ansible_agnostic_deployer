@@ -1,0 +1,129 @@
+apiVersion: v1
+items:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/image.dockerRepositoryCheck: "2020-05-28T19:40:38Z"
+    creationTimestamp: "2020-05-28T19:40:36Z"
+    generation: 2
+    labels:
+      app: quarkus-cafe-core
+      app.kubernetes.io/component: quarkus-cafe-core
+      app.kubernetes.io/instance: quarkus-cafe-core
+      app.kubernetes.io/part-of: quarkus-cafe
+      quarkus-cafe-core: ""
+    name: quarkus-cafe-core
+    namespace: {{ project_namespace }}
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+        openshift.io/imported-from: jeremydavis/quarkus-cafe-core
+      from:
+        kind: DockerImage
+        name: jeremydavis/quarkus-cafe-core:2.4.0
+      generation: 2
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: Source
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      alpha.image.policy.openshift.io/resolve-names: '*'
+      deployment.kubernetes.io/revision: "2"
+      image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"quarkus-cafe-core:latest","namespace":"quarkus-cafe-demo"},"fieldPath":"spec.template.spec.containers[?(@.name==\"quarkus-cafe-core\")].image"}]'
+      openshift.io/generated-by: OpenShiftWebConsole
+    creationTimestamp: "2020-05-28T19:40:36Z"
+    generation: 2
+    labels:
+      app: quarkus-cafe-core
+      app.kubernetes.io/component: quarkus-cafe-core
+      app.kubernetes.io/instance: quarkus-cafe-core
+      app.kubernetes.io/part-of: quarkus-cafe
+      app.openshift.io/runtime-namespace: {{ project_namespace }}
+      quarkus-cafe-core: ""
+    name: quarkus-cafe-core
+    namespace: {{ project_namespace }}
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: quarkus-cafe-core
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftWebConsole
+        creationTimestamp: null
+        labels:
+          app: quarkus-cafe-core
+          deploymentconfig: quarkus-cafe-core
+          quarkus-cafe-core: ""
+      spec:
+        containers:
+        - env:
+          - name: KAFKA_BOOTSTRAP_URLS
+            value: {{ kafka_cluster_name }}-kafka-bootstrap:9092
+          - name: MONGO_DB
+            value: cafedb
+          - name: MONGO_URL
+            value: mongodb://mongodb:mongodb@mongodb:27017/cafedb
+          - name: MONGO_USERNAME
+            value: mongodb
+          - name: MONGO_PASSWORD
+            value: mongodb
+          image: jeremydavis/quarkus-cafe-core:2.4.0
+          imagePullPolicy: Always
+          name: quarkus-cafe-core
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    creationTimestamp: "2020-05-28T19:40:36Z"
+    labels:
+      app: quarkus-cafe-core
+      app.kubernetes.io/component: quarkus-cafe-core
+      app.kubernetes.io/instance: quarkus-cafe-core
+      app.kubernetes.io/name: ""
+      app.kubernetes.io/part-of: quarkus-cafe
+      app.openshift.io/runtime: ""
+      app.openshift.io/runtime-version: latest
+      quarkus-cafe-core: ""
+    name: quarkus-cafe-core
+    namespace: {{ project_namespace }}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: quarkus-cafe-core
+      deploymentconfig: quarkus-cafe-core
+    sessionAffinity: None
+    type: ClusterIP
+kind: List
+metadata:

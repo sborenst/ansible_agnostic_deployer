@@ -29,6 +29,9 @@
   with_fileglob: "../templates/*"
   tags: workload
 
+- name: Load default vars
+  include_vars: defaults/main.yml
+
 #
 #####
 

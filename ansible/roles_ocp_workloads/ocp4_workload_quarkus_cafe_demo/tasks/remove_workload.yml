@@ -1,0 +1,136 @@
+---
+# Remove quarkus-cafe-customermock
+# ------------------------------------------
+- name: Delete quarkus-cafe-customermock instance
+  k8s:
+    state: absent
+    src: "{{ config_location }}/quarkus-cafe-customermock.yaml"
+  ignore_errors: yes
+
+# Remove quarkus-cafe-web instance
+# ------------------------------------------
+- name: Delete quarkus-cafe-web instance
+  k8s:
+    state: absent
+    src: "{{ config_location }}/quarkus-cafe-web.yaml"
+  ignore_errors: yes
+
+# Remove quarkus-cafe-kitchen 
+# ------------------------------------------
+- name: Delete quarkus-cafe-kitchen instance
+  k8s:
+    state: absent
+    src: "{{ config_location }}/quarkus-cafe-kitchen.yaml"
+  ignore_errors: yes
+
+# Remove mongodb
+# ------------------------------------------
+- name: Delete mongodb instance
+  command: "oc delete all --selector app=mongodb"
+  ignore_errors: yes
+  changed_when: False
+
+# Remove mongodb secert
+# ------------------------------------------
+- name: Delete mongodb secret
+  command: "oc delete secret mongodb"
+  ignore_errors: yes
+  changed_when: False
+
+# Remove quarkus-cafe-core workload
+# ------------------------------------------
+- name: Delete quarkus-cafe-core instance
+  k8s:
+    state: absent
+    src: "{{ config_location }}/quarkus-cafe-core.yaml"
+  ignore_errors: yes
+
+# Remove quarkus-cafe-barista workload
+# ------------------------------------------
+- name: Delete quarkus-cafe-barista instance
+  k8s:
+    state: absent
+    src: "{{ config_location }}/quarkus-cafe-barista.yaml"
+  ignore_errors: yes
+
+# Remove AMQ workload
+# ------------------------------------------
+- name: Remove kafka topics
+  k8s:
+    state: absent
+    src: "{{ config_location }}/amq-kafka-topics.yaml"
+  ignore_errors: yes
+
+- name: Remove kafka instance
+  k8s:
+    state: absent
+    src: "{{ config_location }}/amq-kafka-instance.yaml"
+  ignore_errors: yes
+
+- name: wait for cafe-cluster-zookeeper instances to delete
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - "strimzi.io/name=cafe-cluster-zookeeper"
+    field_selectors:
+      - status.phase=Running
+  register: r_zookeeper_status
+  retries: 10
+  delay: 15
+  until: r_zookeeper_status.resources  | list | length == 0
+
+- name: wait for cafe-cluster-kafka instances to delete
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - "strimzi.io/name=cafe-cluster-kafka"
+    field_selectors:
+      - status.phase=Running
+  register: r_kafka_status
+  retries: 10
+  delay: 15
+  until: r_kafka_status.resources  | list | length == 0
+
+- name: Remove AMQ Subscription
+  k8s:
+    state: absent
+    src: "{{ config_location }}/amq-sub.yaml"
+  ignore_errors: yes
+
+- name: Copying over amqstreams.v1.5.3 for deletion
+  template:
+    src: templates/amqstreams.v1.5.3.yaml.j2
+    dest:  "{{ config_location }}/amqstreams.v1.5.3.yaml"
+    owner: "{{ default_owner }}"
+    group: "{{ default_group }}"
+    mode: 0666
+
+# Remove amqstreams.v1.5.3 
+# ------------------------------------------
+- name: Delete amqstreams.v1.5.3 from  project
+  k8s:
+    state: absent
+    src: "{{ config_location }}/amqstreams.v1.5.3.yaml"
+  ignore_errors: yes
+
+# Remove Quarkus cafe project
+# ------------------------------------------
+- name: Delete Quarkus Cafe app project
+  k8s:
+    state: absent
+    kind: Project
+    api_version: project.openshift.io/v1
+    definition:
+      metadata:
+        name: "{{ project_namespace }}"
+        annotations:
+          openshift.io/description: ""
+          openshift.io/display-name: "{{ project_namespace }}"
+
+
+# Leave this as the last task in the playbook.
+# --------------------------------------------
+- name: remove_workload tasks complete
+  debug:
+    msg: "Post-Software checks completed successfully - Removed"
+  when: not silent|bool

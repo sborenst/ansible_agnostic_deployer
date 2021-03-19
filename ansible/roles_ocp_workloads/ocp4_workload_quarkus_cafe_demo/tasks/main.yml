@@ -1,0 +1,30 @@
+---
+# Do not modify this file
+
+- name: Running Pre Workload Tasks
+  include_tasks:
+    file: ./pre_workload.yml
+    apply:
+      become: "{{ become_override | bool }}"
+  when: ACTION == "create" or ACTION == "provision"
+
+- name: Running Workload Tasks
+  include_tasks:
+    file: ./workload.yml
+    apply:
+      become: "{{ become_override | bool }}"
+  when: ACTION == "create" or ACTION == "provision"
+
+- name: Running Post Workload Tasks
+  include_tasks:
+    file: ./post_workload.yml
+    apply:
+      become: "{{ become_override | bool }}"
+  when: ACTION == "create" or ACTION == "provision"
+
+- name: Running Workload removal Tasks
+  include_tasks:
+    file: ./remove_workload.yml
+    apply:
+      become: "{{ become_override | bool }}"
+  when: ACTION == "destroy" or ACTION == "remove"

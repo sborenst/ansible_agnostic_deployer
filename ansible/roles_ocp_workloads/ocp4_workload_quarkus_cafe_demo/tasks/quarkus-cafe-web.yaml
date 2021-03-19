@@ -1,0 +1,30 @@
+- name: Copying over quarkus-cafe-web application
+  template:
+    src: templates/docker/quarkus-cafe-web.yaml.j2
+    dest:  "{{ config_location }}/quarkus-cafe-web.yaml"
+    owner: "{{ default_owner }}"
+    group: "{{ default_group }}"
+    mode: 0666
+
+- name: Create quarkus-cafe-web instance
+  k8s:
+    state: present
+    src: "{{ config_location }}/quarkus-cafe-web.yaml"
+
+- name: Waiting for quarkus-cafe-web deployment
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - app = quarkus-cafe-web
+    field_selectors:
+      - status.phase=Running
+  register: r_web_status
+  retries: 120
+  delay: 15
+  until: r_web_status.resources | list | length == 1
+
+- name: displaying quarkus-cafe-web deployment status
+  debug:
+    var: r_web_status.resources[0].status.phase
+  ignore_errors: false
+
