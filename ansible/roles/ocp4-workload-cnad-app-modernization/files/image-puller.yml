@@ -1,0 +1,9 @@
+apiVersion: che.eclipse.org/v1alpha1
+kind: KubernetesImagePuller
+metadata:
+  name: image-puller
+  namespace: image-puller
+spec:
+  daemonsetName: k8s-image-puller
+  images: >-
+    maven=registry.redhat.io/codeready-workspaces/plugin-java11-rhel8@sha256:cc6641ec663307133274080b6af1ea4e4cd01bb34a013cda5c42b3d4213a9c72;stacks-java-rhel8=registry.redhat.io/codeready-workspaces/stacks-java-rhel8:2.1;theia-rhel8=registry.redhat.io/codeready-workspaces/theia-rhel8:2.1;stacks-golang-rhel8=registry.redhat.io/codeready-workspaces/stacks-golang-rhel8:2.1;stacks-node-rhel8=registry.redhat.io/codeready-workspaces/stacks-node-rhel8:2.1;theia-endpoint-rhel8=registry.redhat.io/codeready-workspaces/theia-endpoint-rhel8@sha256:434278f521fceca36f651700a2138f3a6a8565d56651719a658c29481725ce5e;pluginbroker-metadata-rhel8=registry.redhat.io/codeready-workspaces/pluginbroker-metadata-rhel8@sha256:bb64697b628c4702ac6887e75378f7d37d6f01b22c07c427844f521410dc945c;pluginbroker-artifacts-rhel8=registry.redhat.io/codeready-workspaces/pluginbroker-artifacts-rhel8@sha256:19ee9a624f66127f224b8e74f5b8c7a9c70eec5d249346157323a59d2e23595a;centos-quarkus-maven=quay.io/eclipse/che-quarkus:nightly;ubi-minimal=registry.access.redhat.com/ubi8-minimal@sha256:372622021a90893d9e25c298e045c804388c7666f3e756cd48f75d20172d9e55;postgresql=postgres;jwtproxy-rhel8=registry.redhat.io/codeready-workspaces/jwtproxy-rhel8@sha256:4bd319a7069fb10a98545ac927b4b20efa6766b2d1c809447267b6668051a05f;ubi-minimal2=registry.access.redhat.com/ubi8/ubi-minimal

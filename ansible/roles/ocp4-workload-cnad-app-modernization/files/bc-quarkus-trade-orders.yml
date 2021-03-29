@@ -1,0 +1,43 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: quarkus-trade-orders
+  name: quarkus-trade-orders
+  namespace: daytrader
+spec:
+  failedBuildsHistoryLimit: 5
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: quarkus-trade-orders:latest
+  postCommit: {}
+  resources:
+    limits:
+      cpu: "4"
+      memory: 7Gi
+  runPolicy: Serial
+  source:
+    git:
+      uri: https://github.com/RedHatWorkshops/quarkus-daytrader.git
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: "DockerImage"
+        name: quay.io/quarkus/ubi-quarkus-native-s2i:20.1.0-java11
+    type: Source
+  successfulBuildsHistoryLimit: 5
+  triggers:
+  - github:
+      secret: h0rDxkCpZXnsl--_Bgu0
+    type: GitHub
+  - generic:
+      secret: wX2rK7pIjReKDL7gfnME
+    type: Generic
+  - type: ConfigChange
+  - imageChange: {}
+    type: ImageChange
+status:
+  lastVersion: 0

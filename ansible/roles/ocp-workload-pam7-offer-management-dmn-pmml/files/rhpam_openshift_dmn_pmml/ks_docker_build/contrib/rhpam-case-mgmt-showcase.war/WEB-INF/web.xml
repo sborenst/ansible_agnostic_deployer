@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         version="3.1"
+         xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+
+  <listener>
+    <listener-class>org.uberfire.backend.server.io.DisposableShutdownService</listener-class>
+  </listener>
+
+  <filter>
+    <filter-name>Cache Filter</filter-name>
+    <filter-class>org.uberfire.ext.security.server.CacheHeadersFilter</filter-class>
+  </filter>
+
+  <filter-mapping>
+    <filter-name>Cache Filter</filter-name>
+    <url-pattern>/index.html</url-pattern>
+  </filter-mapping>
+
+  <filter-mapping>
+    <filter-name>Cache Filter</filter-name>
+    <url-pattern>*.js</url-pattern>
+  </filter-mapping>
+
+  <filter>
+    <filter-name>UberFire Security Headers Filter</filter-name>
+    <filter-class>org.uberfire.ext.security.server.SecureHeadersFilter</filter-class>
+    <init-param>
+      <param-name>x-frame-options</param-name>
+      <param-value>SAMEORIGIN</param-value>
+    </init-param>
+    <init-param>
+      <param-name>x-xss-protection-enable</param-name>
+      <param-value>true</param-value>
+    </init-param>
+    <init-param>
+      <param-name>x-xss-protection-block</param-name>
+      <param-value>true</param-value>
+    </init-param>
+  </filter>
+
+  <filter-mapping>
+    <filter-name>UberFire Security Headers Filter</filter-name>
+    <url-pattern>*</url-pattern>
+  </filter-mapping>
+
+  <servlet>
+    <servlet-name>LoginRedirectServlet</servlet-name>
+    <servlet-class>org.uberfire.ext.security.server.LoginRedirectServlet</servlet-class>
+    <init-param>
+      <param-name>display-after-login</param-name>
+      <param-value>/jbpm-cm.html</param-value>
+    </init-param>
+  </servlet>
+
+  <servlet-mapping>
+    <servlet-name>LoginRedirectServlet</servlet-name>
+    <url-pattern>/login</url-pattern>
+  </servlet-mapping>
+
+  <filter>
+    <filter-name>GWT Locale Filter</filter-name>
+    <filter-class>org.uberfire.server.locale.GWTLocaleHeaderFilter</filter-class>
+  </filter>
+
+  <filter-mapping>
+    <filter-name>GWT Locale Filter</filter-name>
+    <url-pattern>/jbpm-cm.html</url-pattern>
+  </filter-mapping>
+
+  <filter>
+    <filter-name>request-capture</filter-name>
+    <filter-class>org.uberfire.ext.security.server.SecurityIntegrationFilter</filter-class>
+  </filter>
+
+  <filter-mapping>
+    <filter-name>request-capture</filter-name>
+    <url-pattern>*</url-pattern>
+  </filter-mapping>
+
+  <filter>
+    <filter-name>Host Page Patch</filter-name>
+    <filter-class>org.jboss.errai.security.server.servlet.UserHostPageFilter</filter-class>
+  </filter>
+
+  <filter-mapping>
+    <filter-name>Host Page Patch</filter-name>
+    <url-pattern>/jbpm-cm.html</url-pattern>
+  </filter-mapping>
+
+  <servlet>
+    <servlet-name>ErraiServlet</servlet-name>
+    <servlet-class>org.jboss.errai.bus.server.servlet.DefaultBlockingServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+
+  <servlet-mapping>
+    <servlet-name>ErraiServlet</servlet-name>
+    <url-pattern>*.erraiBus</url-pattern>
+  </servlet-mapping>
+
+  <!-- the number within the session-timout element must be expressed in
+minutes. it is now 24 hours. -->
+  <session-config>
+    <session-timeout>1440</session-timeout>
+  </session-config>
+
+  <welcome-file-list>
+    <welcome-file>index.jsp</welcome-file>
+  </welcome-file-list>
+
+  <login-config>
+    <auth-method>FORM</auth-method>
+    <realm-name>jBPM Case Management realm</realm-name>
+    <form-login-config>
+      <form-login-page>/login.jsp</form-login-page>
+      <form-error-page>/login.jsp?message=Login failed: Invalid UserName or Password</form-error-page>
+    </form-login-config>
+  </login-config>
+
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>public</web-resource-name>
+      <url-pattern>/org.jbpm.workbench.cm.jBPMCaseManagement/css/*</url-pattern>
+      <url-pattern>/org.jbpm.workbench.cm.jBPMCaseManagement/img/*</url-pattern>
+      <url-pattern>/org.jbpm.workbench.cm.jBPMCaseManagement/fonts/*</url-pattern>
+      <url-pattern>/org.jbpm.workbench.cm.jBPMCaseManagement/js/*</url-pattern>
+    </web-resource-collection>
+  </security-constraint>
+
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>wb</web-resource-name>
+      <url-pattern>/jbpm-cm.html</url-pattern>
+      <url-pattern>/org.jbpm.workbench.cm.jBPMCaseManagement/*</url-pattern>
+      <url-pattern>*.erraiBus</url-pattern>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>user</role-name>
+    </auth-constraint>
+  </security-constraint>
+
+  <security-role>
+    <role-name>user</role-name>
+  </security-role>
+
+  <error-page>
+    <error-code>403</error-code>
+    <location>/not_authorized.jsp</location>
+  </error-page>
+
+</web-app>

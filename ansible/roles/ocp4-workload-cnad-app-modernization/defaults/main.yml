@@ -1,0 +1,32 @@
+---
+ocp_workload_cnad_app_modernization_ocp_username: snandaku-redhat.com
+ocp_workload_cnad_app_modernization_ocp_user_needs_quota: True
+
+ocp_workload_cnad_app_modernization_ocp_user_groups:
+  - OPENTLC-PROJECT-PROVISIONERS
+
+ocp_workload_cnad_app_modernization_quota_requests_cpu: 15
+#quota_limits_cpu: 6
+ocp_workload_cnad_app_modernization_quota_limits_cpu: 25
+
+ocp_workload_cnad_app_modernization_quota_requests_memory: '20Gi'
+#quota_limits_memory: '12Gi'
+ocp_workload_cnad_app_modernization_quota_limits_memory: '48Gi'
+
+ocp_workload_cnad_app_modernization_quota_configmaps: 10
+#quota_pods: 8
+ocp_workload_cnad_app_modernization_quota_pods: 25
+ocp_workload_cnad_app_modernization_quota_persistentvolumeclaims: 8
+ocp_workload_cnad_app_modernization_quota_services: 15
+ocp_workload_cnad_app_modernization_quota_secrets: 50
+ocp_workload_cnad_app_modernization_quota_requests_storage: 10Gi
+
+ocp_workload_cnad_app_modernization_build_status_retries: 40
+ocp_workload_cnad_app_modernization_build_status_delay: 30
+ocp_workload_cnad_app_modernization_deploy_status_retries: 30
+ocp_workload_cnad_app_modernization_deploy_status_delay: 45
+
+##### Demo properties
+ocp_workload_cnad_app_modernization_application_name: cnad-daytrader
+
+ocp_workload_cnad_app_modernization_pv_capacity: 512Mi

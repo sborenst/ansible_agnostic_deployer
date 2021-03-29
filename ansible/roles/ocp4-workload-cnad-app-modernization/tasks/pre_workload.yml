@@ -1,0 +1,46 @@
+---
+
+# - name: Add user to developer group (allowed to create projects)
+#   shell: "oadm groups add-users {{item}} {{ocp_username}}"
+#   register: groupadd_register
+#   with_items: "{{ocp_user_groups}}"
+#   when: ocp_username is defined and ocp_user_groups is defined
+#
+# - name: test that command worked
+#   debug:
+#     var: groupadd_register
+#     verbosity: 2
+
+- name: Show path
+
+  shell: "echo $PATH"
+
+
+- name: Create user Quota - clusterresourcequota
+  shell: |
+        oc create clusterquota clusterquota-"{{ocp_workload_cnad_app_modernization_ocp_username}}-{{guid}}" \
+        --project-annotation-selector=openshift.io/requester="{{ocp_workload_cnad_app_modernization_ocp_username}}" \
+        --hard requests.cpu="{{ocp_workload_cnad_app_modernization_quota_requests_cpu}}" \
+        --hard limits.cpu="{{ocp_workload_cnad_app_modernization_quota_limits_cpu}}"  \
+        --hard requests.memory="{{ocp_workload_cnad_app_modernization_quota_requests_memory}}" \
+        --hard limits.memory="{{ocp_workload_cnad_app_modernization_quota_limits_memory}}" \
+        --hard configmaps="{{ocp_workload_cnad_app_modernization_quota_configmaps}}" \
+        --hard pods="{{ocp_workload_cnad_app_modernization_quota_pods}}" \
+        --hard persistentvolumeclaims="{{ocp_workload_cnad_app_modernization_quota_persistentvolumeclaims}}"  \
+        --hard services="{{ocp_workload_cnad_app_modernization_quota_services}}" \
+        --hard secrets="{{ocp_workload_cnad_app_modernization_quota_secrets}}" \
+        --hard requests.storage="{{ocp_workload_cnad_app_modernization_quota_requests_storage}}"
+  ignore_errors: true
+
+- name: Copy the files used in this role
+  synchronize:
+    src: "files/"
+    dest: "/tmp/{{guid}}/"
+    rsync_opts:
+      - "--no-motd"
+      - "--exclude=.git,*.qcow2"
+    use_ssh_args: true
+
+- name: pre_workload Tasks Complete
+  debug:
+    msg: "Pre-Software checks completed successfully"

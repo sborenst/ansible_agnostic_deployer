@@ -1,0 +1,22 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    app: quarkus-trade-orders
+  name: quarkus-trade-orders
+  namespace: daytrader
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+  - annotations: null
+    from:
+      kind: DockerImage
+      name: image-registry.openshift-image-registry.svc:5000/daytrader/quarkus-trade-orders:latest
+    generation: null
+    importPolicy: {}
+    name: latest
+    referencePolicy:
+      type: ""
+status:
+  dockerImageRepository: ""

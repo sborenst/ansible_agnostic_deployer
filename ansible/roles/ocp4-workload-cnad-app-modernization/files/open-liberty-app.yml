@@ -1,0 +1,150 @@
+apiVersion: v1
+items:
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        app: sampledaytrader8
+        app.kubernetes.io/component: sampledaytrader8
+        app.kubernetes.io/instance: sampledaytrader8
+      name: open-liberty-s2i
+    spec:
+      lookupPolicy:
+        local: false
+      tags:
+        - annotations:
+            openshift.io/imported-from: openliberty/open-liberty-s2i:latest
+          from:
+            kind: DockerImage
+            name: openliberty/open-liberty-s2i:latest
+          generation: null
+          importPolicy: {}
+          name: latest
+          referencePolicy:
+            type: ""
+    status:
+      dockerImageRepository: ""
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        app: sampledaytrader8
+        app.kubernetes.io/component: sampledaytrader8
+        app.kubernetes.io/instance: sampledaytrader8
+      name: sampledaytrader8
+    spec:
+      lookupPolicy:
+        local: false
+    status:
+      dockerImageRepository: ""
+  - apiVersion: build.openshift.io/v1
+    kind: BuildConfig
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        app: sampledaytrader8
+        app.kubernetes.io/component: sampledaytrader8
+        app.kubernetes.io/instance: sampledaytrader8
+      name: sampledaytrader8
+    spec:
+      nodeSelector: null
+      output:
+        to:
+          kind: ImageStreamTag
+          name: sampledaytrader8:latest
+      postCommit: {}
+      resources: {}
+      source:
+        git:
+          ref: openshift
+          uri: https://github.com/RedHatWorkshops/sample.daytrader8.git
+        type: Git
+      strategy:
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            name: open-liberty-s2i:latest
+        type: Source
+      triggers:
+        - github:
+            secret: KB_6j-MS8RzXxOF-RGOu
+          type: GitHub
+        - generic:
+            secret: VIRjidEjv6baNm2WchwS
+          type: Generic
+        - type: ConfigChange
+        - imageChange: {}
+          type: ImageChange
+    status:
+      lastVersion: 0
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"sampledaytrader8:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"sampledaytrader8\")].image"}]'
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        app: sampledaytrader8
+        app.kubernetes.io/component: sampledaytrader8
+        app.kubernetes.io/instance: sampledaytrader8
+      name: sampledaytrader8
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          deployment: sampledaytrader8
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            openshift.io/generated-by: OpenShiftNewApp
+          creationTimestamp: null
+          labels:
+            deployment: sampledaytrader8
+        spec:
+          containers:
+            - image: ' '
+              name: sampledaytrader8
+              ports:
+                - containerPort: 9080
+                  protocol: TCP
+                - containerPort: 9443
+                  protocol: TCP
+              resources: {}
+    status: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        app: sampledaytrader8
+        app.kubernetes.io/component: sampledaytrader8
+        app.kubernetes.io/instance: sampledaytrader8
+      name: sampledaytrader8
+    spec:
+      ports:
+        - name: 9080-tcp
+          port: 9080
+          protocol: TCP
+          targetPort: 9080
+        - name: 9443-tcp
+          port: 9443
+          protocol: TCP
+          targetPort: 9443
+      selector:
+        deployment: sampledaytrader8
+    status:
+      loadBalancer: {}
+kind: List
+metadata: {}

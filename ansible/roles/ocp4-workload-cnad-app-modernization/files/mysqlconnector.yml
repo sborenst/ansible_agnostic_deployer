@@ -1,0 +1,26 @@
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnector
+metadata:
+  name: sqlserver-debezium-connector4
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  class: io.debezium.connector.mysql.MySqlConnector
+  tasksMax: 1
+  config:
+    database.hostname: "mysql.daytrader.svc.cluster.local"
+    database.port: "3306"
+    database.user: "root"
+    database.password: "debezium"
+    database.dbname: "inventory"
+    database.server.name: "daytrader"
+    database.whitelist: "inventory"
+    table.whitelist: "inventory.outboxevent"
+    database.history.kafka.bootstrap.servers: "demo-cluster-kafka-bootstrap:9092"
+    database.history.kafka.topic: "schema-changes.daytrader"
+    #transforms: "outbox"
+    transforms.outbox.type : "io.debezium.transforms.outbox.EventRouter"
+    transforms.outbox.table.fields.additional.placement" : "type:header:eventType"
+    transforms.outbox.table.field.event.timestamp : "timestamp"
+    transforms.outbox.table.fields.additional.placement: "type:envelope:eventType"

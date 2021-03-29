@@ -25,253 +25,245 @@
     src: /tmp/{{guid}}/deploy_kibana.yaml
     namespace: "{{ ELASTIC_PROJ }}"
 
-
-
-- name: Create project for rhpam7 offer management
-  shell: |
-         oc new-project {{ OCP_PROJECT }} \
-         --display-name="RHPAM7 Offer Management" \
-         --description="Red Hat Process Automation Manager 7 Offer Management Demo"
-  ignore_errors: true
-
-
-- name: Import PAM template
-  shell: "oc create -f {{pam_template_yml}} -n {{ OCP_PROJECT }}"
-
-
-
-- name: Check if PAM ImageStreams exists
-  shell: oc get is/rhpam-businesscentral-rhel8 -n openshift
-  register: rhpam_is_exists_result
-  ignore_errors: true
-
-- name: Import the RHPAM ImageStreams into the cluster.
-  shell: "oc create -f {{pam_imagestreams_yml}} -n openshift"
-  when: rhpam_is_exists_result is failed
-  ignore_errors: true
-
-- name: Wait for RHPAM ImageStream tags to be available
-  shell: "oc get is -n openshift | grep -i rhpam | grep -i {{pam_imagestreams_tag}}"
-  register: result
-  until: result.stdout != ""
-  retries: 15
-  delay: 10
-
-
-- name: Create Secrets Business Central
-  shell: oc process -f {{pam_secrets_template_yml}} -p SECRET_NAME=businesscentral-app-secret | oc create -f - -n {{ OCP_PROJECT }}
-
-- name: Create Secrets KIE-server
-  shell: oc process -f {{pam_secrets_template_yml}} -p SECRET_NAME=kieserver-app-secret | oc create -f - -n {{ OCP_PROJECT }}
-
-- name: Create Service Account Business Central
-  shell: oc create serviceaccount businesscentral-service-account -n {{ OCP_PROJECT }}
-
-- name: Create Service Account KIE Server
-  shell: oc create serviceaccount kieserver-service-account -n {{ OCP_PROJECT }}
-
-- name: Link secrets and service account Business Central
-  shell: oc secrets link --for=mount businesscentral-service-account businesscentral-app-secret -n {{ OCP_PROJECT }}
-
-- name: Link secrets and service account KIE-server
-  shell: oc secrets link --for=mount kieserver-service-account kieserver-app-secret -n {{ OCP_PROJECT }}
-
-- name: Create PAM7 Authoring environment 2
-  shell: |
-         oc new-app --template=rhpam75-trial-ephemeral \
-           --name={{pam_app_name}} \
-           -p APPLICATION_NAME={{pam_app_name}} \
-           -p IMAGE_STREAM_NAMESPACE=openshift \
-           -p KIE_ADMIN_USER={{ kie_admin_user }} \
-           -p KIE_SERVER_USER={{ kie_server_user }} \
-           -p KIE_SERVER_CONTROLLER_USER="{{ kie_server_controller_user }}" \
-           -p BUSINESS_CENTRAL_MEMORY_LIMIT="2Gi" \
-           -p KIE_SERVER_MEMORY_LIMIT="2Gi" \
-           -e JAVA_OPTS_APPEND="-Dorg.jbpm.document.storage=/opt/eap/standalone/data/documents"
-
-- name: Configure Liveness probe
-  shell: "oc set probe dc/{{pam_app_name}}-rhpamcentr --liveness --initial-delay-seconds=360 -n {{ OCP_PROJECT }}"
-
-- name: Configure Readiness probe
-  shell: "oc set probe dc/{{pam_app_name}}-rhpamcentr --readiness --initial-delay-seconds=90 -n {{ OCP_PROJECT }}"
-
-- name: Set KIE_ADMIN Password Business Central
-  shell: "oc set env dc/{{pam_app_name}}-rhpamcentr KIE_ADMIN_PWD=redhatpam1! -n {{ OCP_PROJECT }}"
-
-- name: Set KIE_ADMIN Password KIE-Server
-  shell: "oc set env dc/{{pam_app_name}}-kieserver KIE_ADMIN_PWD=redhatpam1! -n {{ OCP_PROJECT }}"
-
-- name: Disable OpenShiftStartupStrategy
-  shell: "oc set env dc/{{pam_app_name}}-rhpamcentr KIE_WORKBENCH_CONTROLLER_OPENSHIFT_ENABLED=false KIE_SERVER_CONTROLLER_PWD=test1234! -n {{ OCP_PROJECT }}"
-
-- name: Configure KIE-Server
-  shell: "oc set env dc/{{pam_app_name}}-kieserver KIE_SERVER_STARTUP_STRATEGY=ControllerBasedStartupStrategy KIE_SERVER_CONTROLLER_USER=controllerUser KIE_SERVER_CONTROLLER_PWD=test1234! KIE_SERVER_CONTROLLER_SERVICE=rhpam7-rhpamcentr KIE_SERVER_CONTROLLER_PROTOCOL=ws KIE_SERVER_ROUTE_NAME=insecure-{{pam_app_name}}-kieserver -n {{ OCP_PROJECT }}"
-
-- name: Running RHPAM DMN PMML build.
-  import_tasks: ./rhpam_openshift_dmn_pmml_workload.yml
-
-- name: "Get KIE-Server Route"
-  shell: "oc get route insecure-{{pam_app_name}}-kieserver | awk 'FNR > 1 {print $2}'"
-  register: oc_get_route_output
-
-- name: "Set KIE Server Route fact"
-  set_fact:
-    kie_server_route: "{{ oc_get_route_output.stdout }}"
-
-- name: "Get ocP Domain Suffix"
-  shell: "oc get route insecure-{{pam_app_name}}-kieserver | awk 'FNR > 1 {print $2}'| cut -d\".\" -f2-"
-  register: oc_get_domain_suffix_output
-
-- name: "ocP Domain Suffix fact"
-  set_fact:
-    ocp_domain_suffix: "{{ oc_get_domain_suffix_output.stdout }}"
-
-
-
-- name: "Create Nexus template"
-  shell: "oc create -f https://raw.githubusercontent.com/OpenShiftDemos/nexus/master/nexus3-template.yaml -n {{ OCP_PROJECT }}"
-
-- name: "Create Nexus persistent template"
-  shell: "oc create -f https://raw.githubusercontent.com/monodot/openshift-nexus/master/nexus3-persistent-template.yaml -n {{ OCP_PROJECT }}"
-
-- name: "Create Nexus Persistent application."
-  shell: "oc new-app nexus3-persistent -n {{ OCP_PROJECT }}"
-
-- name: "Import Kafka/Strimzi templates."
-  shell: "oc apply -f /tmp/{{guid}}/examples/templates/cluster-operator -n {{OCP_PROJECT}}"
-
-- name: "Create Strimzi cluster operator role binding."
-  shell: "oc adm policy add-cluster-role-to-user strimzi-cluster-operator-namespaced --serviceaccount strimzi-cluster-operator -n {{OCP_PROJECT}}"
-
-- name: "Create Strimzi entity operator role binding."
-  shell: "oc adm policy add-cluster-role-to-user strimzi-entity-operator --serviceaccount strimzi-cluster-operator -n {{OCP_PROJECT}}"
-
-- name: "Create Strimzi topic operator role binding. "
-  shell: "oc adm policy add-cluster-role-to-user strimzi-topic-operator --serviceaccount strimzi-cluster-operator -n {{OCP_PROJECT}}"
-
-- name: "Install Strimzi cluster operator."
-  shell: "oc apply -f /tmp/{{guid}}/install/cluster-operator -n {{OCP_PROJECT}}"
-
-- name: "Create ephemeral Kafka cluster"
-  shell: "oc apply -f /tmp/{{guid}}/examples/kafka/kafka-ephemeral.yaml -n {{OCP_PROJECT}}"
-
-- name: "Create OpenJDK ImageStream."
-  shell: "oc create -f https://raw.githubusercontent.com/jboss-openshift/application-templates/ose-v1.4.15/openjdk/openjdk18-image-stream.json -n {{OCP_PROJECT}}"
-
-- include_tasks: ./wait_for_deploy.yml
-  vars:
-    pod_to_wait:
-      - nexus
-
-
-- name: "Create KJAR Build Config"
-  shell: "oc process -f /tmp/{{guid}}/personalization-rules-build-config-template.json -p NEXUSREPO=\"http://nexus.{{OCP_PROJECT}}.svc.cluster.local:8081\" | oc create -f - -n {{OCP_PROJECT}}"
-
-- name: "Start KJAR Build."
-  shell: "oc start-build personalization-dm -n {{OCP_PROJECT}}"
-
-- name : "Data grid"
-  shell: "oc import-image -n openshift registry.access.redhat.com/jboss-datagrid-7/datagrid72-openshift --confirm"
-
-- name : "create cache"
-  shell: "oc new-app --name=offer-management-cache \
-  --image-stream=datagrid72-openshift:latest \
-  -e INFINISPAN_CONNECTORS=hotrod \
-  -e CACHE_NAMES=customerCache,pastTransactionCache \
-  -e HOTROD_SERVICE_NAME=offer-management-cache\
-  -e HOTROD_AUTHENTICATION=true \
-  -e USERNAME=jdguser \
-  -e PASSWORD=P@ssword1"
-
-
-- name: "Create customer history repo build"
-  shell: "oc process -f /tmp/{{guid}}/customer-hist-repo-config-template.json -p NEXUSREPO=\"http://nexus.{{OCP_PROJECT}}.svc.cluster.local:8081\" | oc create -f - -n {{OCP_PROJECT}}"
-
-- name: "Start KJAR Build."
-  shell: "oc start-build cache-load-service -n {{OCP_PROJECT}}"
-
-
-- include_tasks: ./wait_for_build.yml
-  vars:
-    build_to_wait:
-      - personalization-dm
-      - cache-load-service
-
-
-- name: "load cache"
-  shell: "oc new-app java:8~https://github.com/snandakumar87/cache-load-repository.git --name=load-cache-service -e JAVA_APP_JAR=cache-load-service-1.0.0.0-fat.jar --build-env=\"NEXUSREPO=http://nexus.{{OCP_PROJECT}}.svc.cluster.local:8081\" -n {{OCP_PROJECT}}"
-
-- name: "Create Event Emitter application"
-  shell: |
-        oc new-app centos/python-36-centos7~https://github.com/snandakumar87/transaction-events-emitter.git \
-          --name=event-emitter \
-          -e KAFKA_BROKERS=my-cluster-kafka-brokers \
-          -e KAFKA_TOPIC=event-input-stream\
-          -e RATE=1 \
-          --name=emitter -n {{OCP_PROJECT}}
-
-
-- name: "Create Event Analysis application"
-  shell: "oc new-app java:8~https://github.com/snandakumar87/offer-analysis.git --name=offer-analysis --build-env=\"NEXUSREPO=http://nexus.{{OCP_PROJECT}}.svc.cluster.local:8081\" -n {{OCP_PROJECT}}"
-
-
-- name: "elastic password"
-  shell: "echo $(oc -n {{ELASTIC_PROJ}} get secret elasticsearch-sample-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode)"
-  register: elasticpwd
-
-- name: "elastic route"
-  shell: "echo $(oc get routes -n {{ELASTIC_PROJ}} elasticsearch-sample -o jsonpath='{.spec.host}')"
-  register: routeelastic
-
-- debug: msg="the echo was {{ elasticpwd.stdout }}"
-
-- debug: msg="the echo was {{ routeelastic.stdout }}"
-
-
-- name: "put index"
-  shell: "curl -X PUT -u 'elastic:{{elasticpwd.stdout}}' -k https://{{routeelastic.stdout}}/off"
-
-
-- name: "push to elastic"
-  shell: "oc new-app java:8~https://github.com/snandakumar87/offer-elastic-service.git --name=offer-elastic-service --build-env=\"PASSWORD={{elasticpwd.stdout}}\" --build-env=\"ROUTEADDR={{routeelastic.stdout}}\" -n {{OCP_PROJECT}}"
-
-
-
-- name: "Quarkus+Kafka Streams+Angular UI for producer"
-  shell: "oc new-app quay.io/quarkus/ubi-quarkus-native-s2i:19.2.1~https://github.com/snandakumar87/quarkus-kafka-streams.git"
-
-- name: "cancel build so that we can increase memory limits"
-  shell: "oc cancel-build bc/quarkus-kafka-streams"
-
-- name: "Patch"
-  shell: "oc patch bc/quarkus-kafka-streams -p '{\"spec\":{\"resources\":{\"limits\":{\"cpu\":\"2\", \"memory\":\"6Gi\"}}}}'"
-
-- name: "Restart build"
-  shell: "oc start-build bc/quarkus-kafka-streams"
-
-- name: "expose route"
-  shell: "oc expose svc/quarkus-kafka-streams"
-
-- name: "Quarkus+Kafka Streams+Angular UI for consumer"
-  shell: "oc new-app quay.io/quarkus/ubi-quarkus-native-s2i:19.2.1~https://github.com/snandakumar87/quarkus-kafka-consumer.git"
-
-- name: "cancel build so that we can increase memory limits"
-  shell: "oc cancel-build bc/quarkus-kafka-consumer"
-
-- name: "Patch"
-  shell: "oc patch bc/quarkus-kafka-consumer -p '{\"spec\":{\"resources\":{\"limits\":{\"cpu\":\"2\", \"memory\":\"6Gi\"}}}}'"
-
-- name: "Restart build"
-  shell: "oc start-build bc/quarkus-kafka-consumer"
-
-- name: "expose route"
-  shell: "oc expose svc/quarkus-kafka-consumer"
-
-- include_tasks: ./wait_for_deploy.yml
-  vars:
-    pod_to_wait:
-      - "quarkus-kafka-consumer"
-      - "quarkus-kafka-streams"
-
-- name: Give user access to the completed project
-  shell: "oc policy add-role-to-user admin {{ocp_username}} -n {{ OCP_PROJECT }}"
+#
+#
+#- name: Create project for rhpam7 offer management
+#  shell: |
+#         oc new-project {{ OCP_PROJECT }} \
+#         --display-name="RHPAM7 Offer Management" \
+#         --description="Red Hat Process Automation Manager 7 Offer Management Demo"
+#  ignore_errors: true
+#
+#
+#- name: Import PAM template
+#  shell: "oc create -f {{pam_template_yml}} -n {{ OCP_PROJECT }}"
+#
+#
+#
+#- name: Check if PAM ImageStreams exists
+#  shell: oc get is/rhpam-businesscentral-rhel8 -n openshift
+#  register: rhpam_is_exists_result
+#  ignore_errors: true
+#
+#- name: Import the RHPAM ImageStreams into the cluster.
+#  shell: "oc create -f {{pam_imagestreams_yml}} -n openshift"
+#  when: rhpam_is_exists_result is failed
+#  ignore_errors: true
+#
+##- name: Wait for RHPAM ImageStream tags to be available
+##  shell: "oc get is -n openshift | grep -i rhpam | grep -i {{pam_imagestreams_tag}}"
+##  register: result
+##  until: result.stdout != ""
+##  retries: 15
+##  delay: 10
+#
+#
+#- name: Create Secrets Business Central
+#  shell: oc process -f {{pam_secrets_template_yml}} -p SECRET_NAME=businesscentral-app-secret | oc create -f - -n {{ OCP_PROJECT }}
+#
+#- name: Create Secrets KIE-server
+#  shell: oc process -f {{pam_secrets_template_yml}} -p SECRET_NAME=kieserver-app-secret | oc create -f - -n {{ OCP_PROJECT }}
+#
+#- name: Create Service Account Business Central
+#  shell: oc create serviceaccount businesscentral-service-account -n {{ OCP_PROJECT }}
+#
+#- name: Create Service Account KIE Server
+#  shell: oc create serviceaccount kieserver-service-account -n {{ OCP_PROJECT }}
+#
+#- name: Link secrets and service account Business Central
+#  shell: oc secrets link --for=mount businesscentral-service-account businesscentral-app-secret -n {{ OCP_PROJECT }}
+#
+#- name: Link secrets and service account KIE-server
+#  shell: oc secrets link --for=mount kieserver-service-account kieserver-app-secret -n {{ OCP_PROJECT }}
+
+#- name: Create PAM7 Authoring environment 2
+#  shell: |
+#         oc new-app --template=rhpam77-trial-ephemeral \
+#           --name={{pam_app_name}} \
+#
+#- name: Configure Liveness probe
+#  shell: "oc set probe dc/{{pam_app_name}}-rhpamcentr --liveness --initial-delay-seconds=360 -n {{ OCP_PROJECT }}"
+#
+#- name: Configure Readiness probe
+#  shell: "oc set probe dc/{{pam_app_name}}-rhpamcentr --readiness --initial-delay-seconds=90 -n {{ OCP_PROJECT }}"
+#
+#- name: Set KIE_ADMIN Password Business Central
+#  shell: "oc set env dc/{{pam_app_name}}-rhpamcentr KIE_ADMIN_PWD=redhatpam1! -n {{ OCP_PROJECT }}"
+#
+#- name: Set KIE_ADMIN Password KIE-Server
+#  shell: "oc set env dc/{{pam_app_name}}-kieserver KIE_ADMIN_PWD=redhatpam1! -n {{ OCP_PROJECT }}"
+#
+#- name: Disable OpenShiftStartupStrategy
+#  shell: "oc set env dc/{{pam_app_name}}-rhpamcentr KIE_WORKBENCH_CONTROLLER_OPENSHIFT_ENABLED=false KIE_SERVER_CONTROLLER_PWD=test1234! -n {{ OCP_PROJECT }}"
+#
+#- name: Configure KIE-Server
+#  shell: "oc set env dc/{{pam_app_name}}-kieserver KIE_SERVER_STARTUP_STRATEGY=ControllerBasedStartupStrategy KIE_SERVER_CONTROLLER_USER=controllerUser KIE_SERVER_CONTROLLER_PWD=test1234! KIE_SERVER_CONTROLLER_SERVICE=rhpam7-rhpamcentr KIE_SERVER_CONTROLLER_PROTOCOL=ws KIE_SERVER_ROUTE_NAME=insecure-{{pam_app_name}}-kieserver -n {{ OCP_PROJECT }}"
+
+#- name: Running RHPAM DMN PMML build.
+#  import_tasks: ./rhpam_openshift_dmn_pmml_workload.yml
+
+#- name: "Get KIE-Server Route"
+#  shell: "oc get route insecure-{{pam_app_name}}-kieserver | awk 'FNR > 1 {print $2}'"
+#  register: oc_get_route_output
+#
+#- name: "Set KIE Server Route fact"
+#  set_fact:
+#    kie_server_route: "{{ oc_get_route_output.stdout }}"
+#
+#- name: "Get ocP Domain Suffix"
+#  shell: "oc get route insecure-{{pam_app_name}}-kieserver | awk 'FNR > 1 {print $2}'| cut -d\".\" -f2-"
+#  register: oc_get_domain_suffix_output
+#
+#- name: "ocP Domain Suffix fact"
+#  set_fact:
+#    ocp_domain_suffix: "{{ oc_get_domain_suffix_output.stdout }}"
+
+
+
+#- name: "Create Nexus template"
+#  shell: "oc create -f https://raw.githubusercontent.com/OpenShiftDemos/nexus/master/nexus3-template.yaml -n {{ OCP_PROJECT }}"
+#
+#- name: "Create Nexus persistent template"
+#  shell: "oc create -f https://raw.githubusercontent.com/monodot/openshift-nexus/master/nexus3-persistent-template.yaml -n {{ OCP_PROJECT }}"
+#
+#- name: "Create Nexus Persistent application."
+#  shell: "oc new-app nexus3-persistent -n {{ OCP_PROJECT }}"
+#
+#- name: "Import Kafka/Strimzi templates."
+#  shell: "oc apply -f /tmp/{{guid}}/examples/templates/cluster-operator -n {{OCP_PROJECT}}"
+#
+#- name: "Create Strimzi cluster operator role binding."
+#  shell: "oc adm policy add-cluster-role-to-user strimzi-cluster-operator-namespaced --serviceaccount strimzi-cluster-operator -n {{OCP_PROJECT}}"
+#
+#- name: "Create Strimzi entity operator role binding."
+#  shell: "oc adm policy add-cluster-role-to-user strimzi-entity-operator --serviceaccount strimzi-cluster-operator -n {{OCP_PROJECT}}"
+#
+#- name: "Create Strimzi topic operator role binding. "
+#  shell: "oc adm policy add-cluster-role-to-user strimzi-topic-operator --serviceaccount strimzi-cluster-operator -n {{OCP_PROJECT}}"
+#
+#- name: "Install Strimzi cluster operator."
+#  shell: "oc apply -f /tmp/{{guid}}/install/cluster-operator -n {{OCP_PROJECT}}"
+#
+#- name: "Create ephemeral Kafka cluster"
+#  shell: "oc apply -f /tmp/{{guid}}/examples/kafka/kafka-ephemeral.yaml -n {{OCP_PROJECT}}"
+#
+#- name: "Create OpenJDK ImageStream."
+#  shell: "oc create -f https://raw.githubusercontent.com/jboss-openshift/application-templates/ose-v1.4.15/openjdk/openjdk18-image-stream.json -n {{OCP_PROJECT}}"
+#
+#- include_tasks: ./wait_for_deploy.yml
+#  vars:
+#    pod_to_wait:
+#      - nexus
+#
+#
+#- name: "Create KJAR Build Config"
+#  shell: "oc process -f /tmp/{{guid}}/personalization-rules-build-config-template.json -p NEXUSREPO=\"http://nexus.{{OCP_PROJECT}}.svc.cluster.local:8081\" | oc create -f - -n {{OCP_PROJECT}}"
+#
+#- name: "Start KJAR Build."
+#  shell: "oc start-build personalization-dm -n {{OCP_PROJECT}}"
+#
+#- name : "Data grid"
+#  shell: "oc import-image -n openshift registry.access.redhat.com/jboss-datagrid-7/datagrid72-openshift --confirm"
+#
+#- name : "create cache"
+#  shell: "oc new-app --name=offer-management-cache \
+#  --image-stream=datagrid72-openshift:latest \
+#  -e INFINISPAN_CONNECTORS=hotrod \
+#  -e CACHE_NAMES=customerCache,pastTransactionCache \
+#  -e HOTROD_SERVICE_NAME=offer-management-cache\
+#  -e HOTROD_AUTHENTICATION=true \
+#  -e USERNAME=jdguser \
+#  -e PASSWORD=P@ssword1"
+#
+#
+#- name: "Create customer history repo build"
+#  shell: "oc process -f /tmp/{{guid}}/customer-hist-repo-config-template.json -p NEXUSREPO=\"http://nexus.{{OCP_PROJECT}}.svc.cluster.local:8081\" | oc create -f - -n {{OCP_PROJECT}}"
+#
+#- name: "Start KJAR Build."
+#  shell: "oc start-build cache-load-service -n {{OCP_PROJECT}}"
+#
+#
+#- include_tasks: ./wait_for_build.yml
+#  vars:
+#    build_to_wait:
+#      - personalization-dm
+#      - cache-load-service
+#
+#
+#- name: "load cache"
+#  shell: "oc new-app java:8~https://github.com/snandakumar87/cache-load-repository.git --name=load-cache-service -e JAVA_APP_JAR=cache-load-service-1.0.0.0-fat.jar --build-env=\"NEXUSREPO=http://nexus.{{OCP_PROJECT}}.svc.cluster.local:8081\" -n {{OCP_PROJECT}}"
+#
+#- name: "Create Event Emitter application"
+#  shell: |
+#        oc new-app centos/python-36-centos7~https://github.com/snandakumar87/transaction-events-emitter.git \
+#          --name=event-emitter \
+#          -e KAFKA_BROKERS=my-cluster-kafka-brokers \
+#          -e KAFKA_TOPIC=event-input-stream\
+#          -e RATE=1 \
+#          --name=emitter -n {{OCP_PROJECT}}
+#
+#
+#- name: "Create Event Analysis application"
+#  shell: "oc new-app java:8~https://github.com/snandakumar87/offer-analysis.git --name=offer-analysis --build-env=\"NEXUSREPO=http://nexus.{{OCP_PROJECT}}.svc.cluster.local:8081\" -n {{OCP_PROJECT}}"
+#
+#
+#- name: "elastic password"
+#  shell: "echo $(oc -n {{ELASTIC_PROJ}} get secret elasticsearch-sample-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode)"
+#  register: elasticpwd
+#
+#- name: "elastic route"
+#  shell: "echo $(oc get routes -n {{ELASTIC_PROJ}} elasticsearch-sample -o jsonpath='{.spec.host}')"
+#  register: routeelastic
+#
+#- debug: msg="the echo was {{ elasticpwd.stdout }}"
+#
+#- debug: msg="the echo was {{ routeelastic.stdout }}"
+#
+#
+#- name: "put index"
+#  shell: "curl -X PUT -u 'elastic:{{elasticpwd.stdout}}' -k https://{{routeelastic.stdout}}/off"
+#
+#
+#- name: "push to elastic"
+#  shell: "oc new-app java:8~https://github.com/snandakumar87/offer-elastic-service.git --name=offer-elastic-service --build-env=\"PASSWORD={{elasticpwd.stdout}}\" --build-env=\"ROUTEADDR={{routeelastic.stdout}}\" -n {{OCP_PROJECT}}"
+#
+#
+#
+#- name: "Quarkus+Kafka Streams+Angular UI for producer"
+#  shell: "oc new-app quay.io/quarkus/ubi-quarkus-native-s2i:19.2.1~https://github.com/snandakumar87/quarkus-kafka-streams.git"
+#
+#- name: "cancel build so that we can increase memory limits"
+#  shell: "oc cancel-build bc/quarkus-kafka-streams"
+#
+#- name: "Patch"
+#  shell: "oc patch bc/quarkus-kafka-streams -p '{\"spec\":{\"resources\":{\"limits\":{\"cpu\":\"2\", \"memory\":\"6Gi\"}}}}'"
+#
+#- name: "Restart build"
+#  shell: "oc start-build bc/quarkus-kafka-streams"
+#
+#- name: "expose route"
+#  shell: "oc expose svc/quarkus-kafka-streams"
+#
+#- name: "Quarkus+Kafka Streams+Angular UI for consumer"
+#  shell: "oc new-app quay.io/quarkus/ubi-quarkus-native-s2i:19.2.1~https://github.com/snandakumar87/quarkus-kafka-consumer.git"
+#
+#- name: "cancel build so that we can increase memory limits"
+#  shell: "oc cancel-build bc/quarkus-kafka-consumer"
+#
+#- name: "Patch"
+#  shell: "oc patch bc/quarkus-kafka-consumer -p '{\"spec\":{\"resources\":{\"limits\":{\"cpu\":\"2\", \"memory\":\"6Gi\"}}}}'"
+#
+#- name: "Restart build"
+#  shell: "oc start-build bc/quarkus-kafka-consumer"
+#
+#- name: "expose route"
+#  shell: "oc expose svc/quarkus-kafka-consumer"
+#
+#- include_tasks: ./wait_for_deploy.yml
+#  vars:
+#    pod_to_wait:
+#      - "quarkus-kafka-consumer"
+#      - "quarkus-kafka-streams"
+#
+#- name: Give user access to the completed project
+#  shell: "oc policy add-role-to-user admin {{ocp_username}} -n {{ OCP_PROJECT }}"

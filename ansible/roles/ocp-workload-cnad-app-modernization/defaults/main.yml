@@ -1,0 +1,32 @@
+---
+ocp_username: snandaku-redhat.com
+ocp_user_needs_quota: True
+
+ocp_user_groups:
+  - OPENTLC-PROJECT-PROVISIONERS
+
+quota_requests_cpu: 14
+#quota_limits_cpu: 6
+quota_limits_cpu: 20
+
+quota_requests_memory: '16Gi'
+#quota_limits_memory: '12Gi'
+quota_limits_memory: '48Gi'
+
+quota_configmaps: 10
+#quota_pods: 8
+quota_pods: 25
+quota_persistentvolumeclaims: 8
+quota_services: 15
+quota_secrets: 50
+quota_requests_storage: 10Gi
+
+build_status_retries: 40
+build_status_delay: 30
+deploy_status_retries: 30
+deploy_status_delay: 45
+
+##### Demo properties
+application_name: cnad-daytrader
+
+pv_capacity: 512Mi

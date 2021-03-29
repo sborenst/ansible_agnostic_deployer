@@ -1,0 +1,131 @@
+= ocp-workload-developer-environment - Sample Config
+
+== Role overview
+
+* This is a simple role that does the following:
+** Tasks: link:./tasks/pre_workload.yml[pre_workload.yml] - Sets up an
+ environment for the workload deployment
+*** Adds a user to a list of groups defined in the
+ link:./defaults/main.yml[defaults file].
+*** Sets a cluster resource quota for the user based on the variables in the
+ link:./defaults/main.yml[defaults file] .
+*** Debug task will print out: `pre_workload Tasks Complete`
+
+** Tasks: link:./tasks/workload.yml[workload.yml] - Used to deploy the actual
+ workload, i.e, 3scale, Mobile or some Demo
+*** This role doesn't do anything here
+*** Debug task will print out: `workload Tasks Complete`
+
+** Tasks: link:./tasks/post_workload.yml[post_workload.yml] - Used to
+ configure the workload after deployment
+*** This role doesn't do anything here
+*** Debug task will print out: `post_workload Tasks Complete`
+
+== Review the defaults variable file
+
+* This file link:./defaults/main.yml[./defaults/main.yml] contains all the variables you
+ need to define to control the deployment of your workload.
+
+* You can modify any of these default values by adding
+`-e"variable_name=variable_value"` to the command line
+
+=== Deploy Workload on OpenShift Cluster from an existing playbook:
+
+[source,yaml]
+----
+- name: Deploy a workload role on a master host
+  hosts: all
+  become: true
+  gather_facts: False
+  tags:
+    - step007
+  roles:
+    - { role: "{{ocp_workload}}", when: 'ocp_workload is defined' }
+
+----
+NOTE: You might want to change `hosts: all` to fit your requirements
+
+
+=== Common configuration to run these playbooks
+You should have these environment variables defined/exported in your system in order
+to run these playbooks.
+
+----
+HOST_GUID=dev37
+TARGET_HOST="bastion.$HOST_GUID.openshift.opentlc.com"
+OCP_USERNAME="snandaku-redhat.com"
+SSH_USER="opentlc-mgr"
+SSH_PRIVATE_KEY="id_rsa"
+GUID=duncandoyle
+----
+
+=== Deploy a Workload with the `ocp-workload` playbook [Mostly for testing]
+----
+WORKLOAD="ocp-workload-pam7-offer-management-dmn-pmml"
+
+# a TARGET_HOST is specified in the command line, without using an inventory file
+ansible-playbook -i ${TARGET_HOST}, ./configs/ocp-workloads/ocp-workload.yml \
+                 -e"ansible_ssh_private_key_file=~/.ssh/${SSH_PRIVATE_KEY}" \
+                 -e"ansible_user=${SSH_USER}" \
+                 -e"ocp_username=${OCP_USERNAME}" \
+                 -e"ocp_workload=${WORKLOAD}" \
+                 -e"guid=${GUID}" \
+                 -e"ocp_user_needs_quota=true" \
+                 -e"ocp_master=master.${HOST_GUID}.openshift.opentlc.com" \
+                 -e"ocp_apps_domain=apps.${HOST_GUID}.openshift.opentlc.com" \
+                 -e"ACTION=create"
+----
+
+=== To Delete an environment
+Use the common configuration first. Then run this.
+
+----
+WORKLOAD="ocp-workload-pam7-offer-management-dmn-pmml"
+
+# a TARGET_HOST is specified in the command line, without using an inventory file
+ansible-playbook -i ${TARGET_HOST}, ./configs/ocp-workloads/ocp-workload.yml \
+                    -e"ansible_ssh_private_key_file=~/.ssh/${SSH_PRIVATE_KEY}" \
+                    -e"ansible_user=${SSH_USER}" \
+                    -e"ocp_username=${OCP_USERNAME}" \
+                    -e"ocp_workload=${WORKLOAD}" \
+                    -e"guid=${GUID}" \
+                    -e"ACTION=remove"
+----
+
+== Set up your Ansible inventory file
+
+* You can create an Ansible inventory file to define your connection
+ method to your host (Master/Bastion with OC command)
+
+* You can also use the command line to define the hosts directly if your `ssh`
+ configuration is set to connect to the host correctly
+
+* You can also use the command line to use localhost or if your cluster is
+ already authenticated and configured in your `oc` configuration
+[source, ini]
+
+.example inventory file
+----
+[gptehosts:vars]
+ansible_ssh_private_key_file=~/.ssh/keytoyourhost.pem
+ansible_user=ec2-user
+
+[gptehosts:children]
+openshift
+
+[openshift]
+bastion.cluster1.openshift.opentlc.com
+bastion.cluster2.openshift.opentlc.com
+bastion.cluster3.openshift.opentlc.com ansible_ssh_host=ec2-11-111-111-11.us-west-2.compute.amazonaws.com
+bastion.cluster4.openshift.opentlc.com
+
+
+[dev]
+bastion.cluster1.openshift.opentlc.com
+bastion.cluster2.openshift.opentlc.com
+
+
+[prod]
+bastion.cluster3.openshift.opentlc.com
+bastion.cluster4.openshift.opentlc.com
+----

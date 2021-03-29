@@ -1,0 +1,31 @@
+---
+- name: post_workload Tasks Complete
+  debug:
+    msg: "Pre-Software checks completed successfully - Removed"
+
+- name: define OCP_PROJECT
+  set_fact:
+    OCP_PROJECT: "cnad-daytrader-{{guid}}"
+
+- name: Remove Kafka Project
+  shell: "oc delete project {{ KAFKA_PROJECT }}"
+- name: Remove Day Trader Project
+  shell: "oc delete project {{ OCP_PROJECT }}"
+- name: Remove Nexus Project
+  shell: "oc delete project {{ NEXUS_PROJECT }}"
+- name: Remove Image Puller Project
+  shell: "oc delete project {{ IMAGE_PULLER_PROJECT }}"
+- name: Remove CRC Project
+  shell: "oc delete project {{ CRC_PROJECT }}"
+
+
+
+  ignore_errors: true
+
+- name: Remove user Quota - oc delete clusterresourcequota  "clusterquota-{{ocp_username}}-{{guid}}"
+  shell: oc delete clusterresourcequota clusterquota-{{ocp_username}}-{{guid}}
+  ignore_errors: true
+
+- name: post_workload Tasks Complete
+  debug:
+    msg: "Post-Software checks completed successfully - Removed"

@@ -1,0 +1,15 @@
+# Created by buildmetadata-maven-plugin 1.7.0 ( SHA: 6f444cae ) 
+build.artifactId=jbpm-wb-case-mgmt-showcase
+build.groupId=org.jbpm
+build.java.compiler=HotSpot 64-Bit Tiered Compilers
+build.java.runtime.name=OpenJDK Runtime Environment
+build.java.runtime.version=1.8.0_121-b13
+build.java.vendor=Oracle Corporation
+build.java.vm=OpenJDK 64-Bit Server VM
+build.maven.execution.cmdline=-B deploy -B -Dfull\=true -Dmaven.test.failure.ignore\=true -Drevapi.skip\=true -Denforcer.skip\=true -Dgwt.compiler.localWorkers\=1 -Dproductized\=true -DkogitoProductized\=true -DskipTests\=true -Dfindbugs.skip\=true -Dcheckstyle.skip\=true -DnpmRegistryURL\=http\://indy.newcastle.svc.cluster.local/api/folo/track/build-82329/npm/remote/npmjs/ -DnodeDownloadRoot\=http\://rcm-guest.app.eng.bos.redhat.com/rcm-guest/staging/rhba/dist/node/ -DnpmDownloadRoot\=http\://rcm-guest.app.eng.bos.redhat.com/rcm-guest/staging/rhba/dist/npm/ -DyarnDownloadRoot\=http\://rcm-guest.app.eng.bos.redhat.com/rcm-guest/staging/rhba/dist/yarn/ dependency\:tree
+build.maven.version=3.6.0
+build.scmRevision.date=05.02.2021
+build.scmRevision.id=49152241c2ec9bef3426e73f52f6a9d0815b07c6
+build.scmRevision.url=scm\:git\:https\://github.com/kiegroup/droolsjbpm-build-bootstrap.git/jbpm-wb/jbpm-wb-case-mgmt/jbpm-wb-case-mgmt-showcase
+build.version=7.48.0.Final-redhat-00004
+build.version.full=7.48.0.Final-redhat-00004r49152241c2ec9bef3426e73f52f6a9d0815b07c6

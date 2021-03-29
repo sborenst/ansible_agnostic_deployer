@@ -1,0 +1,8 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: codeready-workspaces
+  namespace: codeready-workspaces
+spec:
+  targetNamespaces:
+  - codeready-workspaces

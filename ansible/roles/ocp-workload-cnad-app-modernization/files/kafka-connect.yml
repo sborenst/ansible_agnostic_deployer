@@ -1,0 +1,25 @@
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: my-connect-cluster
+  namespace: kafka
+  annotations:
+  # use-connector-resources configures this KafkaConnect
+  # to use KafkaConnector resources to avoid
+  # needing to call the Connect REST API directly
+    strimzi.io/use-connector-resources: "true"
+spec:
+  image: quay.io/hayesphilip/kafka-connect-debezium:v1.0 
+  replicas: 1
+  bootstrapServers: demo-cluster-kafka-bootstrap:9092
+  config:
+    config.storage.replication.factor: 1
+    offset.storage.replication.factor: 1
+    status.storage.replication.factor: 1
+    config.providers: file
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+  externalConfiguration:
+    volumes:
+      - name: connector-config
+        secret:
+          secretName: my-sql-credentials

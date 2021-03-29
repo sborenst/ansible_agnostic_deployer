@@ -1,0 +1,42 @@
+/* Remove PatternFly top blue border */
+.navbar-pf {
+    border-top: none;
+}
+
+/* Loading indicator at Startup */
+#loading {
+    position: absolute;
+    left: 45%;
+    top: 40%;
+    padding: 2px;
+    z-index: 20001;
+    height: auto;
+    border: 1px solid #ccc;
+}
+
+/* Hide navigation menu */
+ul.nav.navbar-nav.navbar-primary.persistent-secondary {
+    display: none;
+}
+
+/* Remove PatternFly background image from login page */
+.login-pf body {
+    background-color: #1D2226;
+    background-image: none;
+}
+
+/* Remove extra spacing between brand image and home icon */
+#mega-menu .navbar-pf a.navbar-brand {
+    padding: 0px;
+    cursor: default;
+}
+
+/* Resize brand image */
+#mega-menu img.uf-brand-icon {
+    height: auto;
+}
+
+#mega-menu .navbar-pf .navbar-header {
+    height: 58px;
+    min-width: 200px;
+}

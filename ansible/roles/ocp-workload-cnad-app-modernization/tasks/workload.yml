@@ -1,0 +1,131 @@
+---
+- name: define OCP_PROJECT
+  set_fact:
+    OCP_PROJECT: daytrader
+    KAFKA_PROJECT: kafka
+    NEXUS_PROJECT: nexus
+    IMAGE_PULLER_PROJECT: image-puller
+    CRC_PROJECT: codeready-workspaces
+
+
+- name: Install Kafka Cluster operator
+  shell: "oc apply -f /tmp/{{guid}}/operator-subscriptions.yml.j2"
+
+- name: Create project for the kafka cluster
+  shell: "oc new-project {{ KAFKA_PROJECT }} --display-name=\"Kafka Project\" --description=\"Cloud Native Day Trader Application Kafka\""
+
+- name: Install Kafka Cluster operator
+  shell : "oc apply -f /tmp/{{guid}}/operators.yml"
+
+- name: Create Kafka Cluster with Persistence
+  shell : "oc create -f /tmp/{{guid}}/kafka.yml -n {{KAFKA_PROJECT}}"
+
+- name: Deploy Kafdrop - tool to view messages
+  shell : "oc create -f /tmp/{{guid}}/kafdrop4.yml -n {{KAFKA_PROJECT}}"
+
+- name: Deploy the Kafka Connector
+  shell: "oc apply -f  /tmp/{{guid}}/kafka-connect.yml -n {{KAFKA_PROJECT}}"
+
+- name: Deploy MySQL Connector
+  shell: "oc apply -f  /tmp/{{guid}}/mysqlconnector.yml -n {{KAFKA_PROJECT}}"
+
+- name: Create Generic Secrets
+  shell : "oc create secret generic my-sql-credentials --from-file=/tmp/{{guid}}/debezium-mysql-credentials.properties -n {{KAFKA_PROJECT}}"
+
+- name: Create project for Day Trader Demo
+  shell: "oc new-project {{ OCP_PROJECT }} --display-name=\"CNAD Day Trader\" --description=\"Cloud Native Day Trader Application\""
+
+- name: Deploy MySQL
+  shell : "oc new-app --name=mysql debezium/example-mysql:1.2 -n {{OCP_PROJECT}} -e MYSQL_ROOT_PASSWORD=debezium -e MYSQL_USER=mysqluser -e MYSQL_PASSWORD=mysqlpw"
+
+- name: Deploy Postgres DB
+  shell: "oc new-app -p POSTGRESQL_USER=tradedb -p POSTGRESQL_PASSWORD=tradedb -p POSTGRESQL_DATABASE=tradedb postgresql-persistent"
+
+- name: Delete limits
+  shell: "oc delete limits {{OCP_PROJECT}}-core-resource-limits"
+
+- name: Image Stream for Quarkus Trade Orders application
+  shell: "oc apply -f  /tmp/{{guid}}/is-quarkus-trade-orders.yml -n {{OCP_PROJECT}}"
+
+- name: Build Config for Quarkus Trader Orders application
+  shell: "oc apply -f  /tmp/{{guid}}/bc-quarkus-trade-orders.yml -n {{OCP_PROJECT}}"
+
+- name: Deployment Config for Quarkus Trade Orders application
+  shell: "oc apply -f  /tmp/{{guid}}/dc-quarkus-trade-orders.yml -n {{OCP_PROJECT}}"
+
+- name: Create Service for Quarkus application
+  shell: "oc apply -f  /tmp/{{guid}}/service-trade-orders.yml -n {{OCP_PROJECT}}"
+
+- name: Deploy the Open Liberty Application
+  shell: "oc new-app openliberty/open-liberty-s2i:latest~https://github.com/RedHatWorkshops/sample.daytrader8.git#openshift -n {{OCP_PROJECT}}"
+
+- name: Expose route for open liberty application
+  shell: "oc expose svc/sampledaytrader8 --path=/io.openliberty.sample.daytrader8 --name=daytrader-route"
+
+- name: Expose route for quarkus application
+  shell: "oc expose svc/quarkus-trade-orders"
+
+- include_tasks: ./wait_for_build.yml
+  vars:
+    build_to_wait:
+      - "sampledaytrader8"
+      - "quarkus-trade-orders"
+
+- name: day trader route
+  shell: "echo $(oc get routes daytrader-route -o jsonpath='{.spec.host}')"
+  register: daytraderroute
+
+- name: create tables
+  shell: "curl -X GET http://{{daytraderroute.stdout}}/io.openliberty.sample.daytrader8/config?action=buildDBTables"
+
+- name: scale down pod
+  shell: "oc scale --replicas=0 deployment/sampledaytrader8"
+
+- name: scale up pod
+  shell: "oc scale --replicas=1 deployment/sampledaytrader8"
+
+- pause:
+    minutes: 2
+
+- name: populate tables
+  shell: "curl -X GET http://{{daytraderroute.stdout}}/io.openliberty.sample.daytrader8/config?action=buildDB"
+
+- name: Create project for the Nexus Repo
+  shell: "oc new-project {{ NEXUS_PROJECT }} --display-name=\"Nexus\" --description=\"Nexus\""
+
+- name: Create Nexus template
+  shell: "oc create -f https://raw.githubusercontent.com/OpenShiftDemos/nexus/master/nexus3-template.yaml -n {{ NEXUS_PROJECT }}"
+
+- name: Create Nexus persistent template
+  shell: "oc create -f https://raw.githubusercontent.com/monodot/openshift-nexus/master/nexus3-persistent-template.yaml -n {{ NEXUS_PROJECT }}"
+
+- name: Create Nexus Persistent application.
+  shell: "oc new-app nexus3-persistent -n {{ NEXUS_PROJECT }}"
+
+- name: Create project for the Nexus Repo
+  shell: "oc new-project {{ IMAGE_PULLER_PROJECT }} --display-name=\"Image Puller\" --description=\"Image Puller\""
+
+- name: Image puller operator group
+  shell: "oc apply -f /tmp/{{guid}}/image-puller-operator-group.yml"
+
+- name: Image puller operator
+  shell: "oc apply -f /tmp/{{guid}}/image-puller-operator.yml"
+
+- name: Image puller image
+  shell: "oc apply -f /tmp/{{guid}}/image-puller.yml"
+
+- name: Create project for the Nexus Repo
+  shell: "oc new-project {{ CRC_PROJECT }} --display-name=\"crc\" --description=\"crc\""
+
+- name: Code ready workspaces operator group
+  shell: "oc apply -f /tmp/{{guid}}/crw-operator-group.yml"
+
+- name: Code ready workspaces operator
+  shell: "oc apply -f /tmp/{{guid}}/crw-operator.yml"
+
+- pause:
+    minutes: 2
+
+- name: Code ready workspaces cluster operator
+  shell: "oc apply -f /tmp/{{guid}}/crw-cluster.yml"
+

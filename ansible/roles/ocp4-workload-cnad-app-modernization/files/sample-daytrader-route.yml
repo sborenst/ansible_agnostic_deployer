@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  creationTimestamp: null
+  labels:
+    app: sampledaytrader8
+    app.kubernetes.io/component: sampledaytrader8
+    app.kubernetes.io/instance: sampledaytrader8
+  name: sampledaytrader8
+spec:
+  path: /io.openliberty.sample.daytrader8
+  port:
+    targetPort: 9080-tcp
+  to:
+    kind: ""
+    name: sampledaytrader8
+    weight: null
+status: {}

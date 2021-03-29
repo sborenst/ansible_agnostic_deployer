@@ -1,4 +1,4 @@
-FROM registry.redhat.io/rhpam-7/rhpam-businesscentral-rhel8:7.5.0
+FROM registry.redhat.io/rhpam-7/rhpam-businesscentral-rhel8:7.9.0
 
 # jPMML
 ADD https://search.maven.org/remotecontent?filepath=org/jpmml/pmml-evaluator/1.4.9/pmml-evaluator-1.4.9.jar /opt/eap/standalone/deployments/ROOT.war/WEB-INF/lib/pmml-evaluator-1.4.9.jar

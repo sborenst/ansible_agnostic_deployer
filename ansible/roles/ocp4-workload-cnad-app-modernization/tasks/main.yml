@@ -1,0 +1,20 @@
+---
+- name: Running Pre Workload Tasks
+  import_tasks: ./pre_workload.yml
+  become: false
+  when: ACTION == "create" or ACTION == "provision"
+
+- name: Running Workload Tasks
+  import_tasks: ./workload.yml
+  become: false
+  when: ACTION == "create" or ACTION == "provision"
+
+- name: Running Post Workload Tasks
+  import_tasks: ./post_workload.yml
+  become: false
+  when: ACTION == "create" or ACTION == "provision"
+
+- name: Running Workload removal Tasks
+  import_tasks: ./remove_workload.yml
+  become: false
+  when: ACTION == "destroy" or ACTION == "remove"

@@ -1,0 +1,236 @@
+---
+
+- name: Setting up Cloud Native Application Development Workload for user
+  debug:
+    msg: "Setting up workload for user ocp_username = {{ ocp_workload_cnad_app_modernization_ocp_username }}"
+
+- name: define OCP_PROJECT
+  set_fact:
+    OCP_PROJECT: daytrader
+    KAFKA_PROJECT: kafka
+    NEXUS_PROJECT: nexus
+    IMAGE_PULLER_PROJECT: image-puller
+    CRC_PROJECT: codeready-workspaces
+
+
+
+
+- name: Install Kafka Cluster operator
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/operator-subscriptions.yml
+
+- name: Creating project "Kafka"
+  k8s:
+    state: present
+    kind: Project
+    api_version: project.openshift.io/v1
+    definition:
+      metadata:
+        name: kafka
+
+- name: Install Kafka operator
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/operators.yml
+
+- name: Install Kafka Cluster with Persistence
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/kafka.yml
+
+- name: Deploy Kafdrop
+  k8s:
+    state: present
+    namespace: kafka
+    src: /tmp/{{guid}}/kafdrop4.yml
+
+- name: Deploy Kafka Connector
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/kafka-connect.yml
+
+- name: Deploy MySql Connector
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/mysqlconnector.yml
+
+- name: Create the secret
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      data:
+        debezium-mysql-credentials.properties: bXlzcWxfdXNlcm5hbWU6IG15c3FsdXNlcgpteXNxbF9wYXNzd29yZDogbXlzcWxwdwo=
+      kind: Secret
+      metadata:
+        name: my-sql-credentials
+        namespace: kafka
+      type: Opaque
+
+
+- name: Creating project "Cloud Native Day Trader Application"
+  k8s:
+    state: present
+    kind: Project
+    api_version: project.openshift.io/v1
+    definition:
+      metadata:
+        name: daytrader
+
+- name: Deploy MySql
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/mysql.yml
+    namespace: daytrader
+
+- name: Deploy Postgres
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/postgres.yml
+    namespace: daytrader
+
+- name: Delete resource limits
+  k8s:
+    state: absent
+    kind: LimitRange
+    definition:
+      metadata:
+        name: daytrader-core-resource-limits
+
+- name: Image Streams for quarkus trade orders application
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/is-quarkus-trade-orders.yml
+    namespace: daytrader
+
+- name: Build Config for quarkus trade orders application
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/bc-quarkus-trade-orders.yml
+    namespace: daytrader
+
+- name: Deployment Config for quarkus trade orders application
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/dc-quarkus-trade-orders.yml
+    namespace: daytrader
+
+- name: Service for quarkus trade orders application
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/service-trade-orders.yml
+    namespace: daytrader
+
+- name: open liberty app
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/open-liberty-app.yml
+    namespace: daytrader
+
+- name: expose open liberty app
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/sample-daytrader-route.yml
+    namespace: daytrader
+
+- name: expose quarkus app
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/quarkus-route.yml
+    namespace: daytrader
+
+- include_tasks: ./wait_for_build.yml
+  vars:
+    build_to_wait:
+      - sampledaytrader8
+      - quarkus-trade-orders
+
+- name: day trader route
+  shell: "echo $(oc get routes sampledaytrader8 -o jsonpath='{.spec.host}' -n daytrader)"
+  register: daytraderroute
+
+- name: create tables
+  uri:
+    url: "http://{{daytraderroute.stdout}}/io.openliberty.sample.daytrader8/config?action=buildDBTables"
+    method: GET
+  async: 1200
+  poll: 60
+
+- name: set replicas
+  set_fact:
+    scale_replicas: 0
+
+- name: Scale pods down
+  k8s:
+    state: present
+    merge_type:
+      - strategic-merge
+      - merge
+    definition:
+      kind: "Deployment"
+      apiVersion: "apps/v1"
+      metadata:
+        name: sampledaytrader8
+        namespace: daytrader
+      spec:
+        replicas: "{{scale_replicas}}"
+
+
+
+- name: set replicas
+  set_fact:
+    scale_replicas: 1
+
+- name: Scale pods down
+  k8s:
+    state: present
+    merge_type:
+      - strategic-merge
+      - merge
+    definition:
+      kind: "Deployment"
+      apiVersion: "apps/v1"
+      metadata:
+        name: sampledaytrader8
+        namespace: daytrader
+      spec:
+        replicas: "{{scale_replicas}}"
+
+- pause:
+    minutes: 2
+
+- name: Load tables
+  uri:
+    url: "http://{{daytraderroute.stdout}}/io.openliberty.sample.daytrader8/config?action=buildDB"
+    method: GET
+
+- name: Creating project "CRW"
+  k8s:
+    state: present
+    kind: Project
+    api_version: project.openshift.io/v1
+    definition:
+      metadata:
+        name: "{{CRC_PROJECT}}"
+
+- name: Code ready workspaces operator group
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/crw-operator-group.yml
+    namespace: codeready-workspaces
+
+- name: Code ready workspaces operator
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/crw-operator.yml
+    namespace: codeready-workspaces
+
+- pause:
+    minutes: 2
+
+- name: Code ready workspaces cluster operator
+  k8s:
+    state: present
+    src: /tmp/{{guid}}/crw-cluster.yml
+    namespace: codeready-workspaces

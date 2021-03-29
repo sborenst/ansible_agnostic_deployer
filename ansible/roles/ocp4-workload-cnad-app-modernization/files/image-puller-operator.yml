@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: kubernetes-imagepuller-operator
+  namespace: image-puller
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: kubernetes-imagepuller-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace

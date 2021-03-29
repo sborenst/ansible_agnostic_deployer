@@ -2,42 +2,42 @@
 
 # TODO: Replace the ImageStream approach with Binary Builds from a Dockerfile that patch the BC and KIE-Server images with PMML support and Prometheus Metrics Provider.
 
-- name: Debug message
-  debug:
-    msg: "Adding jPMML support to RHPAM 7.5."
-
-- name: Create Business Central DMN PMML build
-  shell: oc new-build --strategy docker --image-stream="openshift/rhpam-businesscentral-rhel8:7.5.0" --binary --name rhpam-businesscentral-rhel8-dmn-pmml -n {{ OCP_PROJECT }}
-
-- name: Create KIE-Server DMN PMML build
-  shell: oc new-build --strategy docker --image-stream="openshift/rhpam-kieserver-rhel8:7.5.0" --binary --name rhpam-kieserver-rhel8-dmn-pmml -n {{ OCP_PROJECT }}
+#- name: Debug message
+#  debug:
+#    msg: "Adding jPMML support to RHPAM 7.5."
+#
+#- name: Create Business Central DMN PMML build
+#  shell: oc new-build --strategy docker --image-stream="openshift/rhpam-businesscentral-rhel8:7.9.0" --binary --name rhpam-businesscentral-rhel8-dmn-pmml -n {{ OCP_PROJECT }}
+#
+#- name: Create KIE-Server DMN PMML build
+#  shell: oc new-build --strategy docker --image-stream="openshift/rhpam-kieserver-rhel8:7.9.0" --binary --name rhpam-kieserver-rhel8-dmn-pmml -n {{ OCP_PROJECT }}
 
 - name: "Configure Business Central ImageStream"
-  shell: "oc patch dc/{{ pam_app_name }}-rhpamcentr --type='json' -p '[{\"op\": \"replace\", \"path\": \"/spec/triggers/0/imageChangeParams/from/name\", \"value\": \"rhpam-businesscentral-rhel8-dmn-pmml:latest\"}]' -n {{ OCP_PROJECT }}"
+  shell: "oc patch dc/myapp-rhpamcentr --type='json' -p '[{\"op\": \"replace\", \"path\": \"/spec/triggers/0/imageChangeParams/from/name\", \"value\": \"rhpam-businesscentral-rhel8-dmn-pmml:latest\"}]' -n {{ OCP_PROJECT }}"
   ignore_errors: true
 
 - name: "Configure Business Central ImageStream Namespace"
-  shell: "oc patch dc/{{ pam_app_name }}-rhpamcentr --type='json' -p '[{\"op\": \"replace\", \"path\": \"/spec/triggers/0/imageChangeParams/from/namespace\", \"value\": \"{{OCP_PROJECT}}\"}]' -n {{ OCP_PROJECT }}"
+  shell: "oc patch dc/myapp-rhpamcentr --type='json' -p '[{\"op\": \"replace\", \"path\": \"/spec/triggers/0/imageChangeParams/from/namespace\", \"value\": \"{{OCP_PROJECT}}\"}]' -n {{ OCP_PROJECT }}"
 
 
 - name: "Configure KIE-Server ImageStream"
-  shell: "oc patch dc/{{ pam_app_name }}-kieserver --type='json' -p '[{\"op\": \"replace\", \"path\": \"/spec/triggers/0/imageChangeParams/from/name\", \"value\": \"rhpam-kieserver-rhel8-dmn-pmml:latest\"}]' -n {{ OCP_PROJECT }}"
+  shell: "oc patch dc/myapp-kieserver --type='json' -p '[{\"op\": \"replace\", \"path\": \"/spec/triggers/0/imageChangeParams/from/name\", \"value\": \"rhpam-kieserver-rhel8-dmn-pmml:latest\"}]' -n {{ OCP_PROJECT }}"
   ignore_errors: true
 
 - name: "Configure KIE-Server ImageStream Namespace"
-  shell: "oc patch dc/{{ pam_app_name }}-kieserver --type='json' -p '[{\"op\": \"replace\", \"path\": \"/spec/triggers/0/imageChangeParams/from/namespace\", \"value\": \"{{OCP_PROJECT}}\"}]' -n {{ OCP_PROJECT }}"
+  shell: "oc patch dc/myapp-kieserver --type='json' -p '[{\"op\": \"replace\", \"path\": \"/spec/triggers/0/imageChangeParams/from/namespace\", \"value\": \"{{OCP_PROJECT}}\"}]' -n {{ OCP_PROJECT }}"
   ignore_errors: true
 
 #------------------------------------ Disable the OpenShift Startup Strategy and revert to the old Controller Strategy  ------------------------------------------
 
 - name: "Configure Business Central Environment Variables"
-  shell: "oc set env dc/{{ pam_app_name }}-rhpamcentr KIE_WORKBENCH_CONTROLLER_OPENSHIFT_ENABLED=false"
+  shell: "oc set env dc/myapp-rhpamcentr KIE_WORKBENCH_CONTROLLER_OPENSHIFT_ENABLED=false"
 
 - name: "Configure KIE-Server Environment Variables"
-  shell: "oc set env dc/{{ pam_app_name }}-kieserver KIE_SERVER_STARTUP_STRATEGY=ControllerBasedStartupStrategy KIE_SERVER_CONTROLLER_USER={{ kie_server_controller_user }} KIE_SERVER_CONTROLLER_PWD={{ kie_server_controller_pwd }} KIE_SERVER_CONTROLLER_SERVICE={{ pam_app_name }}-rhpamcentr KIE_SERVER_CONTROLLER_PROTOCOL=ws KIE_SERVER_ROUTE_NAME=insecure-{{ pam_app_name }}-kieserver"
+  shell: "oc set env dc/myapp-kieserver KIE_SERVER_STARTUP_STRATEGY=ControllerBasedStartupStrategy KIE_SERVER_CONTROLLER_USER={{ kie_server_controller_user }} KIE_SERVER_CONTROLLER_PWD={{ kie_server_controller_pwd }} KIE_SERVER_CONTROLLER_SERVICE={{ pam_app_name }}-rhpamcentr KIE_SERVER_CONTROLLER_PROTOCOL=ws KIE_SERVER_ROUTE_NAME=insecure-{{ pam_app_name }}-kieserver"
 
 - name: "Configure KIE-Server Prometheus plugin environment variables."
-  shell: "oc set env dc/{{ pam_app_name }}-kieserver JAVA_OPTS_APPEND=\"-Dorg.kie.prometheus.server.ext.disabled=false -Dorg.kie.prometheus.server.ext.metrics=org.kie.server.services.prometheus.PrometheusMetricsDMNListener\" -n {{ OCP_PROJECT }}"
+  shell: "oc set env dc/myapp-kieserver JAVA_OPTS_APPEND=\"-Dorg.kie.prometheus.server.ext.disabled=false -Dorg.kie.prometheus.server.ext.metrics=org.kie.server.services.prometheus.PrometheusMetricsDMNListener\" -n {{ OCP_PROJECT }}"
 
 #----------------------------------------------------------------------------------------------------------------------
 

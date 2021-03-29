@@ -1,0 +1,9 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: operators
+  namespace: openshift-marketplace
+spec:
+  source: redhat-operators
+  targetNamespace: openshift-operators
+  packages: amq-streams

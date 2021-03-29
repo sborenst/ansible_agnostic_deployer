@@ -1,0 +1,82 @@
+
+kind: DeploymentConfig
+apiVersion: v1
+metadata:
+  name: db-events-kafdrop
+  namespace: kafka
+  labels:
+    app: kafdrop
+  annotations:
+    app.openshift.io/connects-to: db-events-kafka
+    app.openshift.io/vcs-uri: 'https://github.com/obsidiandynamics/kafdrop'
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    name: kafdrop
+  template:
+    metadata:
+      name: kafdrop
+      labels:
+        name: kafdrop
+    spec:
+      containers:
+        - name: kafdrop
+          env:
+            - name: KAFKA_BROKERCONNECT
+              value: "demo-cluster-kafka-bootstrap:9092"
+          imagePullPolicy: IfNotPresent
+          image: obsidiandynamics/kafdrop
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            httpGet:
+              path: /actuator/health
+              port: 9000
+              scheme: HTTP
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            httpGet:
+              path: /actuator/health
+              port: 9000
+              scheme: HTTP
+  triggers:
+    - type: ConfigChange
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kafdrop
+  labels:
+    app: kafdrop
+spec:
+  ports:
+    - name: 9000-tcp
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    deploymentconfig: db-events-kafdrop
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  labels:
+    app: kafdrop
+  name: kafdrop
+spec:
+  port:
+    targetPort: 9000-tcp
+  to:
+    kind: Service
+    name: kafdrop
+    weight: 100

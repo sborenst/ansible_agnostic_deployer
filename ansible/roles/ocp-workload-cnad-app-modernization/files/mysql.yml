@@ -1,0 +1,105 @@
+apiVersion: v1
+items:
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        app: mysql
+        app.kubernetes.io/component: mysql
+        app.kubernetes.io/instance: mysql
+      name: mysql
+    spec:
+      lookupPolicy:
+        local: false
+      tags:
+        - annotations:
+            openshift.io/imported-from: debezium/example-mysql:1.2
+          from:
+            kind: DockerImage
+            name: debezium/example-mysql:1.2
+          generation: null
+          importPolicy: {}
+          name: "1.2"
+          referencePolicy:
+            type: ""
+    status:
+      dockerImageRepository: ""
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"mysql:1.2"},"fieldPath":"spec.template.spec.containers[?(@.name==\"mysql\")].image"}]'
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        app: mysql
+        app.kubernetes.io/component: mysql
+        app.kubernetes.io/instance: mysql
+      name: mysql
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          deployment: mysql
+      strategy: {}
+      template:
+        metadata:
+          annotations:
+            openshift.io/generated-by: OpenShiftNewApp
+          creationTimestamp: null
+          labels:
+            deployment: mysql
+        spec:
+          containers:
+            - env:
+                - name: MYSQL_PASSWORD
+                  value: mysqlpw
+                - name: MYSQL_ROOT_PASSWORD
+                  value: debezium
+                - name: MYSQL_USER
+                  value: mysqluser
+              image: ' '
+              name: mysql
+              ports:
+                - containerPort: 3306
+                  protocol: TCP
+                - containerPort: 33060
+                  protocol: TCP
+              resources: {}
+              volumeMounts:
+                - mountPath: /var/lib/mysql
+                  name: mysql-volume-1
+          volumes:
+            - emptyDir: {}
+              name: mysql-volume-1
+    status: {}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        app: mysql
+        app.kubernetes.io/component: mysql
+        app.kubernetes.io/instance: mysql
+      name: mysql
+    spec:
+      ports:
+        - name: 3306-tcp
+          port: 3306
+          protocol: TCP
+          targetPort: 3306
+        - name: 33060-tcp
+          port: 33060
+          protocol: TCP
+          targetPort: 33060
+      selector:
+        deployment: mysql
+    status:
+      loadBalancer: {}
+kind: List
+metadata: {}

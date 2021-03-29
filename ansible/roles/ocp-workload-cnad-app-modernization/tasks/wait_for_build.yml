@@ -1,0 +1,23 @@
+---
+
+# Purpose:
+#   This script queries ocP for builds that exist but are not yet ready.
+#   So long as there are unready builds, this script continues to loop
+#
+# Manual Test to determine list of unready builds :
+#  1) install jp :  https://github.com/jmespath/jp
+#  2) ocget builds -o json | jp "items[?  (status.phase != 'Complete') ].metadata.annotations.\"openshift.io/build-config.name\""
+#
+#  Documentation pertaining to jq syntax:
+#    - http://jmespath.org/tutorial.html
+#    - https://stackoverflow.com/questions/41261680/ansible-json-query-path-to-select-item-by-content
+#
+- name: "Wait for following builds to become ready: {{build_to_wait}}"
+  command: 'oc get build -o json -n "{{ OCP_PROJECT }}"'
+  register: build_state
+  changed_when: false
+  retries: "{{ build_status_retries }}"
+  delay: "{{ build_status_delay }}"
+  vars:
+    query: "items[?  (status.phase != 'Complete') ].metadata.annotations.\"openshift.io/build-config.name\""
+  until: "build_state.stdout |from_json |json_query(query) |intersect(build_to_wait) |length == 0"

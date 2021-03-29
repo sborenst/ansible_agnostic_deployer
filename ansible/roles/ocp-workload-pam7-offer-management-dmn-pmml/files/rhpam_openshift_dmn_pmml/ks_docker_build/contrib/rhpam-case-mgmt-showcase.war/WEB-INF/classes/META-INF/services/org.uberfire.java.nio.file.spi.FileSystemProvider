@@ -1,0 +1,2 @@
+org.jbpm.workbench.cm.server.JGitFileSystemProvider  # file system provider, also default (1st)
+org.uberfire.java.nio.fs.file.SimpleFileSystemProvider

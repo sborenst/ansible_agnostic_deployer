@@ -1,0 +1,46 @@
+---
+
+# - name: Add user to developer group (allowed to create projects)
+#   shell: "oadm groups add-users {{item}} {{ocp_username}}"
+#   register: groupadd_register
+#   with_items: "{{ocp_user_groups}}"
+#   when: ocp_username is defined and ocp_user_groups is defined
+#
+# - name: test that command worked
+#   debug:
+#     var: groupadd_register
+#     verbosity: 2
+
+- name: Show path
+
+  shell: "echo $PATH"
+
+
+- name: Create user Quota - clusterresourcequota
+  shell: |
+        oc create clusterquota clusterquota-"{{ocp_username}}-{{guid}}" \
+        --project-annotation-selector=openshift.io/requester="{{ocp_username}}" \
+        --hard requests.cpu="{{quota_requests_cpu}}" \
+        --hard limits.cpu="{{quota_limits_cpu}}"  \
+        --hard requests.memory="{{quota_requests_memory}}" \
+        --hard limits.memory="{{quota_limits_memory}}" \
+        --hard configmaps="{{quota_configmaps}}" \
+        --hard pods="{{quota_pods}}" \
+        --hard persistentvolumeclaims="{{quota_persistentvolumeclaims}}"  \
+        --hard services="{{quota_services}}" \
+        --hard secrets="{{quota_secrets}}" \
+        --hard requests.storage="{{quota_requests_storage}}"
+  ignore_errors: true
+
+- name: Copy the files used in this role
+  synchronize:
+    src: "files/"
+    dest: "/tmp/{{guid}}/"
+    rsync_opts:
+      - "--no-motd"
+      - "--exclude=.git,*.qcow2"
+    use_ssh_args: true
+
+- name: pre_workload Tasks Complete
+  debug:
+    msg: "Pre-Software checks completed successfully"

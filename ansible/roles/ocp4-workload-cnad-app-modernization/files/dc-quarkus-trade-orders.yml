@@ -1,0 +1,29 @@
+kind: "DeploymentConfig"
+apiVersion: "v1"
+metadata:
+  name: "quarkus-trade-orders"
+  namespace: daytrader
+spec:
+  template: 
+    metadata:
+      labels:
+        name: "quarkus-trade-orders"
+    spec:
+      containers:
+        - name: "quarkus-trade-orders"
+          image: "daytrader/quarkus-trade-orders"
+  replicas: 1 
+  selector:
+    name: "quarkus-trade-orders"
+  triggers:
+    - type: "ConfigChange" 
+    - type: "ImageChange" 
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - "quarkus-trade-orders"
+        from:
+          kind: "ImageStreamTag"
+          name: "quarkus-trade-orders:latest"
+  strategy: 
+    type: "Rolling"

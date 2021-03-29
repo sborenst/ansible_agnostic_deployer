@@ -1,0 +1,24 @@
+Manifest-Version: 1.0
+Implementation-Title: jBPM Workbench - Case Management Showcase
+Implementation-Version: 7.48.0.Final-redhat-00004
+Java-Version: 1.8.0_121
+Built-By: PNC-Builder-0.4.0
+Scm-Connection: scm:git:https://github.com/kiegroup/droolsjbpm-build-b
+ ootstrap.git/jbpm-wb/jbpm-wb-case-mgmt/jbpm-wb-case-mgmt-showcase
+Specification-Vendor: JBoss by Red Hat
+Os-Arch: amd64
+Specification-Title: jBPM Workbench - Case Management Showcase
+Implementation-Vendor-Id: org.jbpm
+Java-Vendor: Oracle Corporation
+Os-Name: Linux
+Scm-Url: https://github.com/kiegroup/droolsjbpm-build-bootstrap/jbpm-w
+ b/jbpm-wb-case-mgmt/jbpm-wb-case-mgmt-showcase
+Implementation-Vendor: JBoss by Red Hat
+Os-Version: 3.10.0-1127.19.1.el7.x86_64
+Scm-Revision: 49152241c2ec9bef3426e73f52f6a9d0815b07c6
+Created-By: Apache Maven 3.6.0
+Build-Jdk: 1.8.0_121
+Specification-Version: 7.48
+Implementation-URL: http://www.kiegroup.org/jbpm-wb/jbpm-wb-case-mgmt/
+ jbpm-wb-case-mgmt-showcase
+
