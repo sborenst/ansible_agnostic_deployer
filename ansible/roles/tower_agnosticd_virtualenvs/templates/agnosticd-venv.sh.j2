@@ -22,8 +22,8 @@ for REQUIREMENTS in /usr/local/src/agnosticd/tools/virtualenvs/*.txt; do
   VENV="$(basename $REQUIREMENTS | sed 's/.txt$//')"
   if [[ -L "$REQUIREMENTS" ]]; then
     TARGET="$(readlink "$REQUIREMENTS" | sed 's/.txt$//')"
-    if [[ -e "$VENV" ]] && [[ "$TARGET" != "$(readlink $VENV)" ]]; then
-      rm -rf "$VENV"
+    if [[ ! -e "$VENV" ]] || [[ "$TARGET" != "$(readlink $VENV)" ]]; then
+      rm -f "$VENV"
       ln -s "$TARGET" "$VENV"
     fi
   else
