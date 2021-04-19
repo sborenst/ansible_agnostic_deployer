@@ -38,26 +38,26 @@
         - open_init.stat.executable
 
     - name: Print Student SSH access as user.info
-      debug:
+      agnosticd_user_info:
         msg: "{{ item }}"
-      with_items:
-        - "user.info: "
-        - "user.info: You can access your bastion via SSH:"
-        - "user.info: SSH Access: ssh {{ student_name }}@{{ groups.bastions.0 ~ '.' ~ osp_cluster_dns_zone }}"
+      loop:
+        - ""
+        - "You can access your bastion via SSH:"
+        - "SSH Access: ssh {{ student_name }}@{{ groups.bastions.0 ~ '.' ~ osp_cluster_dns_zone }}"
 
     - name: Print Student SSH password as user.info
-      debug:
-        msg: "user.info: SSH password: {{ student_password | default(hostvars[groups.bastions.0].student_password) }}"
+      agnosticd_user_info:
+        msg: "SSH password: {{ student_password | default(hostvars[groups.bastions.0].student_password) }}"
       when: print_student_password | default(true) | bool
 
     - name: Print guacamole information as user.info
-      debug:
+      agnosticd_user_info:
         msg: "{{ item }}"
-      with_items:
-        - "user.info: "
-        - "user.info: To access to guacamole use the following credentials:"
-        - "user.info: Username: {{ student_name }}"
-        - "user.info: Password: {{ student_password | default(hostvars[groups.bastions.0].student_password) }}"
+      loop:
+        - ""
+        - "To access to guacamole use the following credentials:"
+        - "Username: {{ student_name }}"
+        - "Password: {{ student_password | default(hostvars[groups.bastions.0].student_password) }}"
       when:
         - open_init.stat.exists
         - open_init.stat.executable

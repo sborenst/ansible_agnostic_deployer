@@ -91,13 +91,13 @@
         openstack_project_services: {}
       when: openstack_project_services == ""
 
-    - debug:
-        msg: "user.info: you can connect to this environment from the following hostnames and services:"
+    - agnosticd_user_info:
+        msg: "you can connect to this environment from the following hostnames and services:"
       when: openstack_project_services != {}
 
-    - debug:
+    - agnosticd_user_info:
         msg: >-
-          user.info: - {{ item.1
+          - {{ item.1
           | replace(80,"http")
           | replace(443,"https") }}://{{ item.0.key
           | regex_replace('REPL', guid)
@@ -105,9 +105,9 @@
       when: "item.1 in ['80', '443']"
       loop: "{{ openstack_project_services | dict2items | subelements('value') }}"
 
-    - debug:
+    - agnosticd_user_info:
         msg: >-
-          user.info: - {{ item.0.key
+          - {{ item.0.key
           | regex_replace('REPL', guid)
           | regex_replace('DOMAIN$', osp_cluster_dns_zone) }} port
           {{ item.1 }}
