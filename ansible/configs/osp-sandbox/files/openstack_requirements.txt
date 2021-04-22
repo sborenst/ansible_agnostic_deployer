@@ -17,7 +17,7 @@ dogpile.cache==0.9.0
 google-auth==1.14.1
 idna==2.9
 iso8601==0.1.12
-Jinja2==2.11.2
+Jinja2==2.11.3
 jmespath==0.9.5
 jsonpatch==1.25
 jsonpointer==2.0
