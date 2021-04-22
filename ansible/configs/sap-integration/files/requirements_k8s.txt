@@ -6,7 +6,7 @@ cachetools==3.1.1
 certifi==2019.11.28
 cffi==1.13.2
 chardet==3.0.4
-cryptography==3.2
+cryptography==3.3.2
 dictdiffer==0.8.1
 distro==1.4.0
 google-auth==1.10.2
