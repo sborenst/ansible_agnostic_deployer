@@ -10,7 +10,7 @@ certifi==2019.11.28
 cffi==1.13.2
 chardet==3.0.4
 colorama==0.4.3
-cryptography==3.2
+cryptography==3.3.2
 dictdiffer==0.8.1
 distro==1.4.0
 docutils==0.15.2
