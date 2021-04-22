@@ -12,7 +12,7 @@ cmd2==0.8.9
 colorama==0.4.1
 configparser==4.0.2
 contextlib2==0.6.0.post1
-cryptography==2.8
+cryptography==3.3.2
 debtcollector==1.22.0
 decorator==4.4.0
 distro==1.4.0

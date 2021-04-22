@@ -10,7 +10,7 @@ chardet==3.0.4
 cliff==3.4.0
 cmd2==0.8.9
 colorama==0.4.1
-cryptography==2.8
+cryptography==3.3.2
 debtcollector==1.22.0
 decorator==4.4.2
 dnspython==1.16.0
