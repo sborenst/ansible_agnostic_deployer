@@ -16,7 +16,7 @@ distro==1.4.0
 docutils==0.15.2
 google-auth==1.29.0
 idna==2.8
-Jinja2==2.10.3
+Jinja2==2.11.3
 jmespath==0.9.4
 kubernetes==11.0.0
 MarkupSafe==1.1.1
