@@ -9,7 +9,7 @@ cffi==1.14.0
 chardet==3.0.4
 ConfigArgParse==1.0
 configobj==5.0.6
-cryptography==2.8
+cryptography==3.3.2
 distro==1.4.0
 dnspython==1.16.0
 docutils==0.15.2
