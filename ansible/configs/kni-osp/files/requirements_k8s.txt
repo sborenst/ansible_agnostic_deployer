@@ -15,7 +15,7 @@ google-auth==1.23.0
 idna==2.8
 importlib-metadata==3.1.1
 iso8601==0.1.13
-Jinja2==2.11.2
+Jinja2==2.11.3
 jmespath==0.10.0
 jsonpatch==1.28
 jsonpointer==2.0
