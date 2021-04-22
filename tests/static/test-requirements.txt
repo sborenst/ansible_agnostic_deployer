@@ -1,4 +1,4 @@
-ansible==2.9.15
+ansible==2.9.20
 appdirs==1.4.4
 astroid==2.4.2
 attrs==20.3.0
