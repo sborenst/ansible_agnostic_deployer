@@ -8,6 +8,7 @@
       ocp4_domain: "{{ guid }}{{ subdomain_base_suffix }}"
       ocp4_ssh_user: "{{ student_name }}"
       ocp4_password: "{{ student_password }}"
+      deploy_bookbag: "{{ deploy_bookbag | default(true) | bool }}"
   when:
   - student_name is defined
   - student_password is defined
