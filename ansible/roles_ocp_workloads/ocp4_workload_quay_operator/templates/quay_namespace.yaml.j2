@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "{{ ocp4_workload_quay_operator_quay_namespace }}"
+  labels:
+    openshift.io/cluster-monitoring: "true"
+spec:
+  finalizers:
+  - kubernetes

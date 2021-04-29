@@ -3,12 +3,15 @@ galaxy_info:
   role_name: ocp4_workload_quay_operator
   author: Red Hat GPTE, Wolfgang Kulhanek (wkulhane@redhat.com)
   description: |
-    Deploys the Quay Operator into OpenShift. After the installation the role optionally
-    deploys a QuayEcosystem into the cluster.
+    Deploy either the Quay Operator into OpenShift or 
+    deploys a QuayRegistry into the cluster. Both can be combined.
+    Must have OpenShift Container Storage available on the cluster before
+    a QuayRegistry is created.
   license: MIT
   min_ansible_version: 2.9
   platforms: []
   galaxy_tags:
   - ocp
   - openshift
+  - quay
 dependencies: []

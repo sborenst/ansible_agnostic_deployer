@@ -1,57 +1,81 @@
 ---
-- name: Remove Quay
+- name: Uninstall QuayRegistry
+  when: ocp4_workload_quay_operator_install_quay | bool
+  block:
+  # Operator Service Account doesn't have enough permissions to clean up
+  # when deploying namespaced
+  # Temporarily make it cluster admin
+  - name: Bug Workaround - add cluster-admin to operator service account
+    when: not ocp4_workload_quay_operator_install_global | bool
+    k8s:
+      state: present
+      definition: "{{ lookup('template', 'cluster_role_binding.yaml.j2' ) | from_yaml }}"
+
+  - name: Remove Quay
+    k8s:
+      state: absent
+      api_version: quay.redhat.com/v1
+      kind: QuayRegistry
+      name: "{{ ocp4_workload_quay_operator_name }}"
+      namespace: "{{ ocp4_workload_quay_operator_operator_namespace }}"
+
+  - name: Wait for all Quay Pods to be terminated
+    k8s_info:
+      api_version: v1
+      kind: Pod
+      namespace: "{{ ocp4_workload_quay_operator_operator_namespace }}"
+      label_selectors:
+      - "quay-operator/quayregistry = {{ ocp4_workload_quay_operator_name }}"
+    register: r_running_pods
+    until: r_running_pods.resources | list | length == 0
+    ignore_errors: true
+    retries: 20
+    delay: 10
+
+  - name: Bug Workaround - remove cluster-admin to operator service account
+    when: not ocp4_workload_quay_operator_install_global | bool
+    k8s:
+      state: absent
+      definition: "{{ lookup('template', 'cluster_role_binding.yaml.j2' ) | from_yaml }}"
+
+- name: Install Quay Operator
+  when: ocp4_workload_quay_operator_install_operator | bool
+  block:
+  - name: Set Operator Namespace (Global)
+    when: ocp4_workload_quay_operator_install_global | bool
+    set_fact:
+      _ocp4_workload_quay_operator_namespace: openshift-operators
+
+  - name: Set Operator Namespace (Namespaced)
+    when: not ocp4_workload_quay_operator_install_global | bool
+    set_fact:
+      _ocp4_workload_quay_operator_namespace: "{{ ocp4_workload_quay_operator_operator_namespace }}"
+
+  - name: Remove Operator
+    include_role:
+      name: install_operator
+    vars:
+      install_operator_action: remove
+      install_operator_name: quay-operator
+      install_operator_namespace: "{{ _ocp4_workload_quay_operator_namespace }}"
+      install_operator_channel: "{{ ocp4_workload_quay_operator_channel }}"
+      install_operator_catalog: redhat-operators
+      install_operator_packagemanifest_name: quay-operator
+      install_operator_automatic_install_plan_approval: "{{ ocp4_workload_quay_operator_automatic_install_plan_approval }}"
+      install_operator_csv_nameprefix: "quay-operator"
+      install_operator_starting_csv: "{{ ocp4_workload_quay_operator_starting_csv }}"
+      install_operator_use_catalog_snapshot: "{{ ocp4_workload_quay_operator_use_catalog_snapshot }}"
+      install_operator_catalogsource_name: "{{ ocp4_workload_quay_operator_catalogsource_name }}"
+      install_operator_catalog_snapshot_image: "{{ ocp4_workload_quay_operator_catalog_snapshot_image | default('') }}"
+      ocp4_workload_quay_operator_catalog_snapshot_image_tag: "{{ ocp4_workload_pipelines_catalog_snapshot_image_tag }}"
+
+- name: Remove Quay Namespace
+  when: ocp4_workload_quay_operator_install_quay | bool
   k8s:
     state: absent
-    api_version: redhatcop.redhat.io/v1alpha1
-    kind: QuayEcosystem
-    name: "{{ ocp4_workload_quay_operator_name }}"
-    namespace: "{{ ocp4_workload_quay_operator_project }}"
-
-- name: Wait for all Quay Pods to be terminated
-  k8s_info:
     api_version: v1
-    kind: Pod
-    namespace: "{{ ocp4_workload_quay_operator_project }}"
-  register: r_running_pods
-  until: r_running_pods.resources | list | length <= 2
-  ignore_errors: true
-  retries: 20
-  delay: 10
-
-- name: Get Installed CSV
-  k8s_info:
-    api_version: operators.coreos.com/v1alpha1
-    kind: Subscription
-    name: quay-operator
-    namespace: "{{ ocp4_workload_quay_operator_project }}"
-  register: r_subscription
-
-- name: Remove CSV
-  when:
-  - r_subscription.resources | length > 0
-  - r_subscription.resources[0].status.currentCSV is defined
-  - r_subscription.resources[0].status.currentCSV | length > 0
-  k8s:
-    state: absent
-    api_version: operators.coreos.com/v1alpha1
-    kind: ClusterServiceVersion
-    name: "{{ r_subscription.resources[0].status.currentCSV }}"
-    namespace: "{{ ocp4_workload_quay_operator_project }}"
-
-- name: Remove Subscription
-  k8s:
-    state: absent
-    api_version: operators.coreos.com/v1alpha1
-    kind: Subscription
-    name: quay-operator
-    namespace: "{{ ocp4_workload_quay_operator_project }}"
-
-- name: Remove Red Hat Quay Operator Project
-  k8s:
-    state: absent
-    definition: "{{ lookup('template', item ) | from_yaml }}"
-  loop:
-  - ./templates/project.j2
+    kind: Namespace
+    name: "{{ ocp4_workload_quay_operator_quay_namespace }}"
 
 # Leave this as the last task in the playbook.
 - name: remove_workload tasks complete

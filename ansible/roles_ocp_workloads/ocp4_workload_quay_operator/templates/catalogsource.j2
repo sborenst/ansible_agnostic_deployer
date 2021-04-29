@@ -1,9 +1,0 @@
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: "{{ ocp4_workload_quay_operator_catalogsource_name }}"
-  namespace: "{{ ocp4_workload_quay_operator_project }}"
-spec:
-  sourceType: grpc
-  image: "{{ ocp4_workload_quay_operator_catalog_snapshot_image }}:{{ ocp4_workload_quay_operator_catalog_snapshot_image_tag }}"
-  displayName: "{{ ocp4_workload_quay_operator_catalogsource_name }}"

@@ -1,0 +1,13 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-admin-quay-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+subjects:
+- kind: ServiceAccount
+  name: quay-operator
+  namespace: "{{ ocp4_workload_quay_operator_operator_namespace }}"

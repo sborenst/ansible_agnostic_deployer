@@ -3,8 +3,7 @@
 == Role overview
 
 * This role installs the Red Hat Quay Operator and via the Operator Red Hat Quay Registry into an OpenShift Cluster.
-
-* The Operator source is at https://github.com/redhat-cop/quay-operator.
+* The cluster *must* have OpenShift Container Storage installed.
 
 * The role consists of the following tasks files:
 ** Tasks: link:./tasks/pre_workload.yml[pre_workload.yml] - Sets up an
@@ -39,7 +38,6 @@ TARGET_HOST="bastion.na4.openshift.opentlc.com"
 OCP_USERNAME="wkulhane-redhat.com"
 WORKLOAD="ocp4_workload_quay_operator"
 GUID=1001
-QUAY_DOCKERCONFIGJSON="wk_quay_dockerconfigjson" # change this
 
 # a TARGET_HOST is specified in the command line, without using an inventory file
 ansible-playbook -i ${TARGET_HOST}, ./configs/ocp-workloads/ocp-workload.yml \
