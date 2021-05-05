@@ -9,7 +9,7 @@
   tasks:
   - name: Remove DNS entry for OpenShift API and ingress
     nsupdate:
-      server: "{{ osp_cluster_dns_server }}"
+      server: "{{ lookup('dig', osp_cluster_dns_server) }}"
       zone: "{{ osp_cluster_dns_zone }}"
       record: "{{ item }}.cluster-{{ guid }}"
       type: A

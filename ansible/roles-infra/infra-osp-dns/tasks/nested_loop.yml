@@ -13,7 +13,7 @@
 
     - name: DNS entry ({{ _dns_state | default('present') }})
       nsupdate:
-        server: "{{ osp_cluster_dns_server }}"
+        server: "{{ lookup('dig', osp_cluster_dns_server) }}"
         zone: "{{ osp_cluster_dns_zone }}"
         record: "{{ _instance_name }}.{{ guid }}"
         type: A
@@ -29,7 +29,7 @@
   block:
     - name: DNS entry ({{ _dns_state | default('present') }})
       nsupdate:
-        server: "{{ osp_cluster_dns_server }}"
+        server: "{{ lookup('dig', osp_cluster_dns_server) }}"
         zone: "{{ osp_cluster_dns_zone }}"
         record: "{{ _instance_name }}.{{ guid }}"
         type: A

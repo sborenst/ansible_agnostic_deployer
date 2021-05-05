@@ -8,7 +8,7 @@
 
     - name: DNS entry ({{ _dns_state | default('present') }})
       nsupdate:
-        server: "{{ osp_cluster_dns_server }}"
+        server: "{{ lookup('dig', osp_cluster_dns_server) }}"
         zone: "{{ osp_cluster_dns_zone }}"
         #zone: rhpds.opentlc.com
         record: "{{ _dns }}"
@@ -24,7 +24,7 @@
   block:
     - name: DNS entry ({{ _dns_state | default('present') }})
       nsupdate:
-        server: "{{ osp_cluster_dns_server }}"
+        server: "{{ lookup('dig', osp_cluster_dns_server) }}"
         zone: "{{ osp_cluster_dns_zone }}"
         #zone: rhpds.opentlc.com
         record: "{{ _dns }}"
