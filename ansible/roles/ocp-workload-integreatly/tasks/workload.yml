@@ -56,21 +56,21 @@
     openshift_master_url: "{{ (openshift_master_config['content'] | b64decode | from_yaml)['masterPublicURL'] }}"
 
 - name: Print Overview
-  debug:
+  agnosticd_user_info:
     msg: "{{ item }}"
-  with_items:
-    - "user.info: Integreatly Workshop Overview"
-    - "user.info: Openshift Master Console: {{ openshift_master_url }}"
-    - "user.info: Web App URL: https://{{ webapp_route.stdout }}"
+  loop:
+    - "Integreatly Workshop Overview"
+    - "Openshift Master Console: {{ openshift_master_url }}"
+    - "Web App URL: https://{{ webapp_route.stdout }}"
     - >-
-      user.info: Cluster Admin User: {{ cluster_admin_username }} / {{ cluster_admin_password }}
+      Cluster Admin User: {{ cluster_admin_username }} / {{ cluster_admin_password }}
       (This user is not available in RHMI production/poc clusters. Only RHMI operations teams have cluster-admin access)
     - >-
-      user.info: Customer Admin User: {{ customer_admin_username }} / {{ customer_admin_password }} (This is the
+      Customer Admin User: {{ customer_admin_username }} / {{ customer_admin_password }} (This is the
       most privileged user account available to consultants and customers in RHMI production/poc environments.
       Details at {{ documentation_link }})
-    - "user.info: Pre-seeded Evaluation Users: evals{01..50} / {{ evals_password }}"
-    - "user.info: Getting Started Guide: {{ documentation_link }}"
+    - "Pre-seeded Evaluation Users: evals{01..50} / {{ evals_password }}"
+    - "Getting Started Guide: {{ documentation_link }}"
 
 - name: workload tasks complete
   debug:
