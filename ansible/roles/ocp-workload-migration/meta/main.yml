@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: Pranav Gaikwad <pgaikwad@redhat.com>
+  author: Nenad Peric <nenad@redhat.com>
   description: Deploys Cluster Application Migration Tool on OCP3 clusters using Migration Operator
   company: Red Hat
   license: BSD
