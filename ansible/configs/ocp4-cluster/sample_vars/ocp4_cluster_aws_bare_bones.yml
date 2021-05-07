@@ -25,7 +25,7 @@ aws_region: us-west-1
 key_name: opentlc_admin_backdoor
 
 # OpenShift Installer version to use
-ocp4_installer_version: 4.4.3
+ocp4_installer_version: 4.6.28
 
 # The Pull Secret to pull OpenShift images. Get from try.openshift.com
 ocp4_pull_secret: 'FROM_SECRET'

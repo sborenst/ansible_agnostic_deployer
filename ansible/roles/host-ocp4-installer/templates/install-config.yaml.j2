@@ -14,6 +14,9 @@ controlPlane:
 {%   endif %}
     aws:
       type: {{ master_instance_type | to_json }}
+{%   if openshift_controlplane_aws_zones_odcr | default([]) | length > 0 %}
+      zones: {{ openshift_controlplane_aws_zones_odcr | unique | to_json }}
+{%   endif %}
       rootVolume:
         type: {{ master_storage_type | to_json }}
 {%   if master_storage_type in ['io1', 'io2'] %}
@@ -52,6 +55,8 @@ compute:
         type: {{ worker_storage_type | to_json }}
 {%   if openshift_machineset_aws_zones | default([]) | length > 0 %}
       zones: {{ openshift_machineset_aws_zones | to_json }}
+{%   elif openshift_machineset_aws_zones_odcr | default([]) | length > 0 %}
+      zones: {{ openshift_machineset_aws_zones_odcr | unique | to_json }}
 {%   endif %}
 {% endif %}
 {% if cloud_provider == 'azure' %}

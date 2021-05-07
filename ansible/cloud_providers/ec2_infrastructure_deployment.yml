@@ -11,8 +11,10 @@
     - step001.1
     - deploy_infrastructure
   tasks:
-    - name: Run infra-aws-capacity-reservation
-      import_role:
+    # If infra-aws-capacity-reservation role was not executed, run it
+    - when: agnosticd_aws_capacity_reservation_results.reservations | default({}) | length == 0
+      name: Run infra-aws-capacity-reservation
+      include_role:
         name: infra-aws-capacity-reservation
       vars:
         ACTION: 'provision'

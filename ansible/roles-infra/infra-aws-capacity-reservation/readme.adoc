@@ -17,10 +17,13 @@ agnosticd_aws_capacity_reservation_region:  # <1>
   - us-east-1
   - us-east-2
 
+# Must the zones all be distinct ?
+agnosticd_aws_capacity_reservation_distinct: false # <2>
+
 agnosticd_aws_capacity_reservations:
   az1:
     - instance_count: 1
-      instance_platform: Linux/UNIX # <2>
+      instance_platform: Linux/UNIX # <3>
       instance_type: t3a.medium
     - instance_count: 2
       instance_platform: Linux/UNIX
@@ -36,9 +39,12 @@ agnosticd_aws_capacity_reservations:
 regions:
 - "{{ aws_region }}"
 ----
-<2> For Red Hat Entreprise Linux, use `Red Hat Enterprise Linux`, for RHEL *GOLD* images, use `Linux/UNIX`. For more info, please see link:https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-capacity-reservations.html#capacity-reservations-platforms[upstream documentation].
+<2> When set to true, the module will always pick distinct zones.
+<3> For Red Hat Entreprise Linux, use `Red Hat Enterprise Linux`, for RHEL *GOLD* images, use `Linux/UNIX`. For more info, please see link:https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-capacity-reservations.html#capacity-reservations-platforms[upstream documentation].
 
-Ideally, that variable should be configured in the `default_vars_ec2.yaml` directly in the config. For ex:
+WARNING: reservation groups are requested alphabetically. In the above example, az1 comes first, then az2.  That is important and to be taken into consideration if you set `agnosticd_aws_capacity_reservation_distinct` to `true` because you can easily run out of Availability Zones and increase provision failures. Unless mandatory, it is not recommended to use distinct zones.
+
+Ideally, `agnosticd_aws_capacity_reservations` variable should be configured in `default_vars_ec2.yaml` directly in the config or as `pre_infra` step in the config. For ex:
 [source,yaml]
 .input as part of `default_vars_ec2.yaml`
 ----

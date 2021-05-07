@@ -1,0 +1,9 @@
+FROM python:2
+
+LABEL maintainer="Guillaume Core (fridim) <gucore@redhat.com>"
+
+RUN pip install --upgrade pip
+RUN pip install ansible==2.9.15 awscli
+RUN pip install boto boto3
+
+USER ${USER_UID}

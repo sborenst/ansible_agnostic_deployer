@@ -56,3 +56,25 @@
       when: install_infra_ssh_key | default(false) | bool
       include_role:
         name: infra-ec2-ssh-key
+
+    # Find and set the AWS Availability Zones using on-demand capacity reservations
+    - name: Run infra-aws-capacity-reservation
+      include_role:
+        name: infra-aws-capacity-reservation
+      vars:
+        ACTION: 'provision'
+
+    - name: Set availability zones for Cloudformation and install-config.yml
+      when: agnosticd_aws_capacity_reservation_results.reservations | default({}) | length > 0
+      block:
+      - name: Set availability zone for bastion, masters and workers
+        set_fact:
+          # Cloudformation (bastion)
+          aws_availability_zone: "{{ agnosticd_aws_capacity_reservation_results.reservations.az1.availability_zone }}"
+          # masters
+          openshift_controlplane_aws_zones_odcr:
+          - "{{ agnosticd_aws_capacity_reservation_results.reservations.masters.availability_zone }}"
+          # workers
+          openshift_machineset_aws_zones_odcr:
+          - "{{ agnosticd_aws_capacity_reservation_results.reservations.workers1.availability_zone }}"
+          - "{{ agnosticd_aws_capacity_reservation_results.reservations.workers2.availability_zone }}"

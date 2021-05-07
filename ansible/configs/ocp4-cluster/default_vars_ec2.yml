@@ -73,6 +73,21 @@ ocp4_base_domain: "{{ subdomain_base }}"
 # Bastion Configuration
 bastion_instance_type: "t3a.medium"
 bastion_instance_image: RHEL82GOLD
+#bastion_instance_platform: Linux/UNIX
+# For standard (not GOLD) RHEL images:
+#bastion_instance_platform: Red Hat Enterprise Linux
+# used for on-demand capacity reservation:
+bastion_instance_platform: >-
+  {%- if 'RHEL' in bastion_instance_image -%}
+  {%-   if 'GOLD' in bastion_instance_image -%}
+  Linux/UNIX
+  {%-   else -%}
+  Red Hat Enterprise Linux
+  {%-   endif -%}
+  {%- else -%}
+  Linux/UNIX
+  {%- endif -%}
+
 # Root Filesystem Size
 bastion_rootfs_size: 30
 
@@ -131,3 +146,51 @@ instances:
   rootfs_size: "{{ bastion_rootfs_size }}"
   security_groups:
   - BastionSG
+
+# -------------------------------------------------------------------
+# AWS On-demand Capacity
+# -------------------------------------------------------------------
+# To disable ODCR entirely, just set the following variable to false:
+#agnosticd_aws_capacity_reservation_enable: false
+
+######################################
+# ocp4-cluster for workshops and labs
+######################################
+# This ODCR config is the one that has the most chances to successfully deploy.
+# It has very few constraints and the goal is to avoid Insufficient
+# Instance Capacity errors.
+#
+# - Workers are split on 2 zones, if possible. Can be a single zone.
+# - Masters are all in the same zone.
+# - Bastion has its own zone, which can also be the same as the other zones,
+#   because we don't request zones to be distinct.
+# Zones can be the same, not necessarly distinct.
+agnosticd_aws_capacity_reservation_distinct: false
+agnosticd_aws_capacity_reservations:
+  # Bastion can have its own AZ
+  az1:
+  - instance_type: "{{ bastion_instance_type }}"
+    instance_count: 1
+    instance_platform: "{{ bastion_instance_platform }}"
+
+  masters:
+  - instance_type: "{{ master_instance_type }}"
+    instance_count: 3
+    instance_platform: Linux/UNIX
+
+  # Split workers in 2 AZs if possible.  Could be the same zone.
+  workers1:
+  # Workers: half of workers
+  - instance_type: "{{ worker_instance_type }}"
+    instance_count: >-
+      {{ ( worker_instance_count | int / 2 )
+      | round(0, 'ceil')
+      | int }}
+    instance_platform: Linux/UNIX
+  workers2:
+  - instance_type: "{{ worker_instance_type }}"
+    instance_count: >-
+      {{ ( worker_instance_count | int / 2 )
+      | round(0, 'ceil')
+      | int }}
+    instance_platform: Linux/UNIX

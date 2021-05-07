@@ -5,6 +5,7 @@ import datetime
 import re
 import pprint
 import sys
+import six
 from ansible.errors import AnsibleError
 from ansible.plugins.action import ActionBase
 from ansible.utils.display import Display
@@ -35,6 +36,12 @@ DOCUMENTATION = """
             required: False
             type: int
             default: 1h
+          distinct:
+            description: If true, all the zones must be distinct. If false, do best-effort.
+            required: False
+            type: bool
+            default: False
+
 """
 
 EXAMPLES = """
@@ -78,7 +85,7 @@ def parse_duration(time_str):
         r'^((?P<days>\d+?)[dD])? *((?P<hours>\d+?)[hH])? *((?P<minutes>\d+?)m)? *((?P<seconds>\d+?)s?)?$'
     )
 
-    if not time_str or not isinstance(time_str, str):
+    if not time_str or not isinstance(time_str, six.string_types):
         raise InvalidDuration("'%s' is not a valid duration" %(time_str))
     parts = regex.match(time_str.strip())
     if not parts:
@@ -124,7 +131,7 @@ def check_response(response):
             raise AnsibleError("Error requesting EC2 offerings.")
     except Exception as err:
         display.error(pp.pformat(response))
-        raise AnsibleError("Error requesting EC2 offerings.") from err
+        six.raise_from(AnsibleError("Error requesting EC2 offerings."), err)
 
 
 class ODCRFactory:
@@ -238,7 +245,7 @@ class ODCRFactory:
             try:
                 duration = parse_duration(self.ttl)
             except Exception as err:
-                raise AnsibleError("could not parse duration {}".format(self.ttl)) from err
+                six.raise_from(AnsibleError("could not parse duration {}".format(self.ttl)), err)
 
             if len(self.tags) > 0:
                 tag_spec =[{
@@ -249,12 +256,12 @@ class ODCRFactory:
                 tag_spec = []
 
             response = self.clients[region].create_capacity_reservation(
-                **reservation_translated,
                 AvailabilityZone=availability_zone,
                 EndDate=datetime.datetime.now() + duration,
                 EndDateType='limited',
                 InstanceMatchCriteria='open',
                 TagSpecifications=tag_spec,
+                **reservation_translated
             )
 
             check_response(response)
@@ -277,9 +284,7 @@ class ODCRFactory:
                 return False, ''
 
             display.error(pp.pformat(err))
-            raise AnsibleError(
-                "Client Error while creating reservation."
-            ) from err
+            six.raise_from(AnsibleError("Client Error while creating reservation."), err)
 
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
             # if success, continue
@@ -308,6 +313,9 @@ class ODCRFactory:
             if self.dry_run:
                 continue
 
+            # sanitize
+            reservation['instance_count'] = int(reservation['instance_count'])
+
             return_ok, reservation_id = self.create_reservation(
                 region,
                 availability_zone,
@@ -327,7 +335,7 @@ class ODCRFactory:
 
         return True, reservation_ids
 
-    def do_reservation_group(self, region, reservation_group):
+    def do_reservation_group(self, region, reservation_group, az_done):
         """Determine the AZs with matching instance-type offerings.
 
         Try to create capacity reservations in one of those AZs.
@@ -346,6 +354,9 @@ class ODCRFactory:
             i['instance_type'] for i in reservation_group
         )
         matching_azs = self.filter_azs(region, all_instance_types)
+        if self.distinct:
+            matching_azs = matching_azs - az_done
+
         display.v(
             "..loop2: AZs with matching offerings for group: %s" %
             (pp.pformat(matching_azs)))
@@ -389,12 +400,14 @@ class ODCRFactory:
         display.v(".loop1: available AZs: %s" % self.get_azs(region))
 
         result = {}
-        for reservation_group_name in reservation_groups:
+        az_done = set()
+        for reservation_group_name in sorted(reservation_groups):
             reservation_group = reservation_groups[reservation_group_name]
             display.v("..loop2: group %s" %(reservation_group_name))
             r_ok, availability_zone, reservation_ids = self.do_reservation_group(
                 region,
-                reservation_group
+                reservation_group,
+                az_done,
             )
 
             if not r_ok:
@@ -406,6 +419,7 @@ class ODCRFactory:
                 'availability_zone': availability_zone,
                 'reservation_ids': reservation_ids,
             }
+            az_done.add(availability_zone)
 
         return True, result
 
@@ -417,9 +431,10 @@ class ODCRFactory:
                                             region_name=region,
                                             )
 
-    def __init__(self, aws_key, aws_secret, task_vars, ttl, dry_run=False):
+    def __init__(self, aws_key, aws_secret, task_vars, ttl, dry_run=False, distinct=False):
         self.aws_key = aws_key
         self.aws_secret = aws_secret
+        self.distinct = distinct
         self.tags = []
         self.ttl = ttl
         self.clients = {}
@@ -455,6 +470,18 @@ class ActionModule(ActionBase):
         del tmp # tmp no longer has any effect
 
         ttl = self._task.args.get('ttl', '1h')
+        distinct = self._task.args.get('distinct', False)
+        if isinstance(distinct, six.string_types):
+            if distinct.lower() in ['true', 'y', 'yes']:
+                distinct = True
+            if distinct.lower() in ['false', 'n', 'no']:
+                distinct = False
+
+        if not isinstance(distinct, bool):
+            result['failed'] = True
+            result['error'] = 'distinct must be a boolean'
+            return result
+
         state = self._task.args.get('state', 'present')
 
         aws_access_key_id = self._task.args.get('aws_access_key_id')
@@ -465,13 +492,16 @@ class ActionModule(ActionBase):
             return result
 
         reservations = self._task.args.get('reservations', {})
+
         regions = self._task.args.get('regions', [])
+
 
         odcr = ODCRFactory(
             aws_key = aws_access_key_id,
             aws_secret = aws_secret_access_key,
             task_vars = task_vars,
             ttl=ttl,
+            distinct=distinct,
         )
 
         try:
