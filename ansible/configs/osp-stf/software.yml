@@ -14,6 +14,35 @@
   tags:
     - install-crc
   tasks:
+    - name: "Lock the standalone host to Red Hat Enterprise Linux 8.2"
+      shell: subscription-manager release --set=8.2
+      become: yes
+    - name: Update all Packages and Reboot STC CRC VM
+      become: yes
+      block:
+        - name: Update all packages
+          yum:
+            name: '*'
+            state: latest
+          register: r_yum
+          retries: 3
+          until: r_yum is succeeded
+
+        - name: Determine if reboot is needed
+          command: needs-restarting -r
+          register: needs_restarting
+          failed_when: false
+          changed_when: false
+
+        - name: Reboot STF CRC VM after updating to the latest release
+          when: needs_restarting.rc == 1
+          block:
+            - name: Reboot STC CRC VM
+              reboot:
+                connect_timeout: 300
+                msg: "RHEL updates installing. Rebooting now."
+                pre_reboot_delay: 60
+                post_reboot_delay: 20
     - name: Setup CRC
       include_role:
         name: codeready_containers_hacks
@@ -41,6 +70,15 @@
   hosts: stfcrcs
   become: yes
   tasks:
+    - name: Ensure python3-pip is installed
+      yum:
+        name: python3-pip
+        state: present
+      register: result
+      until: result.rc == 0
+      retries: 5
+      delay: 20
+
     - name: "Install kubernetes python module"
       pip:
         name: kubernetes==11.0.0
@@ -100,21 +138,6 @@
         state: present
         definition: "{{ lookup('file', 'catalogsource.yaml') }}"
 
-    - name: Enabling Red Hat STF Operator Source
-      k8s:
-        state: present
-        definition: "{{ lookup('file', 'operatorsource.yaml') }}"
-
-    - name: Wait for operator source to be present
-      k8s_info:
-        api_version: operators.coreos.com/v1
-        kind: OperatorSource
-        name: redhat-operators-stf
-        namespace: openshift-marketplace
-      register: result
-      until:
-        - "result.resources | length > 0"
-
     - name: Create subscription for AMQ Certificate Manager Operator
       k8s:
         state: present
@@ -124,7 +147,7 @@
       k8s_info:
         api_version: operators.coreos.com/v1alpha1
         kind: Subscription
-        name: amq7-cert-manager
+        name: amq7-cert-manager-operator
         namespace: openshift-operators
       register: r_subscription_amq_certificate_manager
       retries: 100
@@ -295,10 +318,15 @@
         state: present
         definition: "{{ lookup('file', 'servicetelemetryobjectwithgrafana.yaml') }}"
 
-    - name: Create RHOS Dashboard
+    - name: Create Infrastructure Node View Dashboard
       k8s:
         state: present
         definition: "{{ lookup('file', 'rhos-dashboard.yaml') }}"
+
+    - name: Create Cloud View Dashboard
+      k8s:
+        state: present
+        definition: "{{ lookup('file', 'rhos-cloud-dashboard.yaml') }}"
 
     - name: Create Grafaha Dashboard route
       k8s:
@@ -407,7 +435,27 @@
         state: absent
       become: yes
 
-    - name: Update all Packages and Reboot VMs
+    - name: "Lock the standalone host to Red Hat Enterprise Linux 8.2"
+      shell: subscription-manager release --set=8.2
+      become: yes
+
+    - name: "Disable containers tools rhel8"
+      shell: dnf module disable -y container-tools:rhel8
+      become: yes
+
+    - name: "Enable containers tools 2.0"
+      shell: dnf module enable -y container-tools:2.0
+      become: yes
+
+    - name: "Disable virt tools rhel"
+      shell: dnf module disable -y virt:rhel
+      become: yes
+
+    - name: "Enable virt tools 8.2"
+      shell: dnf module enable -y virt:8.2
+      become: yes
+
+    - name: Update all Packages and Reboot OSP standlone VM
       become: yes
       block:
         - name: Update all packages

@@ -4,8 +4,17 @@ metadata:
   name: stf-default
   namespace: service-telemetry
 spec:
+  alerting:
+    enabled: true
   graphing:
     enabled: true
+  transports:
+    qdr:
+      enabled: true
+      web:
+        enabled: false
+  highAvailability:
+    enabled: false
   backends:
     metrics:
       prometheus:

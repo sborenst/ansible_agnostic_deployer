@@ -6,12 +6,12 @@ guid: CHANGEME                          # Your Global UNIQUE Identifier
 ################################################################################
 ################################################################################
 
-codeready_containers_hacks_crc_version: "1.15.0"
+codeready_containers_hacks_crc_version: "1.22.0"
 codeready_containers_hacks_haproxy_ip: "0.0.0.0"
 codeready_containers_hacks_ocp4_version: latest
 codeready_containers_hacks_ocp4_release: latest
 codeready_containers_hacks_ocp4_release_url: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ codeready_containers_hacks_ocp4_release }}/"
-ocp4_client: "openshift-client-linux.tar.gz"
+codeready_containers_hacks_ocp4_client: "openshift-client-linux.tar.gz"
 # Default memory in MiB
 codeready_containers_hacks_memory_crcvm: 24576
 # Defaul cpus
@@ -273,17 +273,18 @@ common_packages:
   - vim-enhanced
 
 rhel_repos:
-  - rhel-8-for-x86_64-appstream-rpms
-  - rhel-8-for-x86_64-baseos-rpms
-  - rhel-8-for-x86_64-highavailability-rpms
+  - rhel-8-for-x86_64-appstream-eus-rpms
+  - rhel-8-for-x86_64-baseos-eus-rpms
+  - rhel-8-for-x86_64-highavailability-eus-rpms
   - ansible-2.9-for-rhel-8-x86_64-rpms
   - openstack-16.1-for-rhel-8-x86_64-rpms
   - fast-datapath-for-rhel-8-x86_64-rpms
+  - advanced-virt-for-rhel-8-x86_64-rpms
 
 
 ###V2WORK, these should just be set as default listed in the documentation
 install_bastion: true
-install_common: true
+install_common: false
 ## SB Don't set software_to_deploy from here, always use extra vars (-e) or "none" will be used
 #software_to_deploy: none
 

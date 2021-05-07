@@ -27,6 +27,9 @@
 
     - role: set_env_authorized_key
       when: set_env_authorized_key | bool
+  tasks:
+    - name: "Lock the standalone host to Red Hat Enterprise Linux 8.2"
+      shell: subscription-manager release --set=8.2
 
 - name: Configuring Bastion Hosts
   hosts: bastions
@@ -36,6 +39,15 @@
       when: install_bastion | bool
     - role: bastion-student-user
       when: install_student_user | bool
+  tasks:
+    - name: Ensure python3 is installed
+      yum:
+        name: python3
+        state: present
+      register: result
+      until: result.rc == 0
+      retries: 5
+      delay: 20
   tags:
     - step004
     - bastion_tasks

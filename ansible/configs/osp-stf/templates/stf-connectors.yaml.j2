@@ -1,6 +1,11 @@
 parameter_defaults:
     EventPipelinePublishers: []
+    PipelinePublishers: []
     CeilometerQdrPublishEvents: true
+    CeilometerQdrPublishMetrics: true
+    CollectdEnableLibpodstats: true
+    CollectdSensubilityTransport: amqp1
+    CollectdEnableSensubility: true
     MetricsQdrConnectors:
     - host: "{{ hostvars['crc_with_stf_installed']['crc_routeamqpinterconnect'] }}"
       port: 443
@@ -10,5 +15,7 @@ parameter_defaults:
     ExtraConfig:
         collectd::plugin::cpu::reportbycpu: true
         collectd::plugin::vmem::verbose: true
+        ceilometer::agent::polling::polling_interval: 5
     CollectdExtraPlugins:
       - vmem
+      - amqp1
