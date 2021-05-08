@@ -13,13 +13,13 @@
 
 # wait for CRD to be a thing
 - name: Wait for CodeReady CRD to be ready
-  k8s_facts:
+  k8s_info:
     api_version: apiextensions.k8s.io/v1beta1
     kind: CustomResourceDefinition
     name: checlusters.org.eclipse.che
   register: r_codeready_crd
-  retries: 200
-  delay: 10
+  retries: 400
+  delay: 2
   until: r_codeready_crd.resources | list | length == 1
 
 # deploy codeready CR
@@ -33,18 +33,18 @@
   loop:
   - codeready_cr.yaml
 
-# wait for che to be up
+# Takes up to 700s
 - name: wait for CRW to be running
   uri:
     url: https://codeready-labs-infra.{{ route_subdomain }}/dashboard/
     validate_certs: false
   register: result
   until: result.status == 200
-  retries: "120"
-  delay: "15"
+  retries: 400
+  delay: 2
 
 - name: Get sso secrets
-  k8s_facts:
+  k8s_info:
     kind: Secret
     namespace: labs-infra
     name: che-identity-secret
@@ -72,12 +72,12 @@
 - name: wait for keycloak to return
   command: oc rollout -n labs-infra status --timeout=1m -w deployment/keycloak
   register: cmd_res
-  retries: 120
-  delay: 10
+  retries: 400
+  delay: 2
   until: cmd_res.rc == 0
 
 - name: get keycloak pod
-  k8s_facts:
+  k8s_info:
     api_version: v1
     kind: Pod
     namespace: labs-infra
@@ -85,8 +85,8 @@
       - app = codeready
       - component = keycloak
   register: r_keycloak_pod
-  retries: 120
-  delay: 10
+  retries: 400
+  delay: 2
   until: r_keycloak_pod.resources | list | length == 1
 
 - name: Get codeready SSO admin token
@@ -119,25 +119,3 @@
       ssoSessionMaxLifespan: 28800
     body_format: json
     status_code: 204
-
-- name: create codeready users
-  include_tasks: add_che_user.yaml
-  loop: "{{ users }}"
-  loop_control:
-    loop_var: user
-
-- name: Pre-create and warm user workspaces
-  include_tasks: create_che_workspace.yaml
-  loop: "{{ users }}"
-  loop_control:
-    loop_var: user
-
-- name: wait 2 minutes and let the image download and be registered so workspaces start up
-  pause:
-    minutes: 2
-
-- name: Attempt to warm workspaces which failed to start
-  include_tasks: verify_che_workspace.yaml
-  loop: "{{ users }}"
-  loop_control:
-    loop_var: user

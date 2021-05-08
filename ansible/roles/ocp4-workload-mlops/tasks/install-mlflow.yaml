@@ -17,8 +17,8 @@
     validate_certs: false
   register: result
   until: result.status == 200
-  retries: 50
-  delay: 10
+  retries: 400
+  delay: 2
   when: "'deployed' not in item.stdout"
   loop: "{{ results.results }}"
   loop_control:

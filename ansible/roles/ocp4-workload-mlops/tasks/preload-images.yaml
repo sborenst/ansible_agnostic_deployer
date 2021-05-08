@@ -31,16 +31,16 @@
     loop_var: image
     label: "{{image.name}}"
 
-- name: Wait till all pods are deployed
-  k8s_facts:
+- name: Wait till all preload image pods are deployed
+  k8s_info:
     api_version: apps/v1
     kind: DaemonSet
     name: "{{image.name}}"
     namespace: labs-setup
   register: result
   until: result | json_query(query)
-  retries: 80
-  delay: 10
+  retries: 400
+  delay: 2
   loop: "{{images_to_seed}}"
   loop_control:
     loop_var: image

@@ -31,8 +31,8 @@
     validate_certs: false
   register: result
   until: result.status == 200
-  retries: 50
-  delay: 10
+  retries: 400
+  delay: 2
 
 - name: create gogs admin user '{{ gogs_admin_user }}'
   uri:

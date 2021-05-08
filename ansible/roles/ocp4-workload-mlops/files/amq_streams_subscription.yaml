@@ -5,9 +5,8 @@ metadata:
   name: amq-streams
   namespace: labs-kafka
 spec:
-  channel: stable
+  channel: amq-streams-1.6.x  
   installPlanApproval: Automatic
   name: amq-streams
-  source: redhat-operators
+  source: olm-snapshot-redhat-catalog
   sourceNamespace: openshift-marketplace
-  #startingCSV: amqstreams.v1.6.1

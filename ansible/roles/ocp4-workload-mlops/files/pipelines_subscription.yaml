@@ -8,5 +8,5 @@ spec:
   channel: stable
   installPlanApproval: Automatic
   name: openshift-pipelines-operator-rh
-  source: redhat-operators
+  source: olm-snapshot-redhat-catalog
   sourceNamespace: openshift-marketplace

@@ -45,27 +45,35 @@ GUID=b5c8
 ACTION=create 
 
  # This to reset user password
- ansible-playbook -i localhost, -c local ./configs/ocp-workloads/ocp-workload.yml \
-     -e "ansible_python_interpreter=`which python`" \
-     -e"ACTION=create" \
-     -e"ocp_username=${OCP_USERNAME}" \
-     -e"ocp_workload=roles_ocp_workloads/ocp4_workload_authentication" \
-     -e"silent=False" \
-     -e"ocp4_workload_authentication_remove_kubeadmin=False" \
-     -e"ocp4_workload_authentication_htpasswd_user_count=${USER_COUNT}" \
-     -e"ocp4_workload_authentication_admin_user=${OCP_USERNAME}" \
-     -e"ocp4_workload_authentication_htpasswd_admin_password=${PASSWORD}" \
-     -e"ocp4_workload_authentication_htpasswd_user_password=${PASSWORD}"
+ ansible-playbook -i localhost, -c local \
+  ./configs/ocp-workloads/ocp-workload.yml \
+  -e "ansible_python_interpreter=`which python`" \
+  -e"ansible_user=$USER" \
+  -e"ACTION=create" \
+  -e"ocp_username=${OCP_USERNAME}" \
+  -e"ocp_workload=roles_ocp_workloads/ocp4_workload_authentication" \
+  -e"silent=False" \
+  -e"ocp4_workload_authentication_remove_kubeadmin=False" \
+  -e"ocp4_workload_authentication_htpasswd_user_count=${USER_COUNT}" \
+  -e"ocp4_workload_authentication_admin_user=${OCP_USERNAME}" \
+  -e"ocp4_workload_authentication_htpasswd_admin_password=${PASSWORD}" \
+  -e"ocp4_workload_authentication_htpasswd_user_password=${PASSWORD}"
 
 # Deploy the workshop onto an existing OCP 4 cluster. 
-ansible-playbook -i localhost, -c local ./configs/ocp-workloads/ocp-workload.yml \
-    -e "ansible_python_interpreter=`which python`" \
-    -e"ACTION=$ACTION" \
-    -e"ocp_username=${OCP_USERNAME}" \
-    -e"ocp_workload=${WORKLOAD}" \
-    -e"guid=${GUID}" \
-    -e"silent=False" \
-    -e"num_users=${USER_COUNT}" 
+ansible-playbook -i localhost, -c local \
+  ./configs/ocp-workloads/ocp-workload.yml \
+  -e "ansible_python_interpreter=`which python`" \
+  -e"ACTION=$ACTION" \
+  -e"ocp_username=${OCP_USERNAME}" \
+  -e"ocp_workload=${WORKLOAD}" \
+  -e"guid=${GUID}" \
+  -e"silent=False" \
+  -e"num_users=${USER_COUNT}"
+
+# You can also pass these variables for an alternate git repo 
+# that will run in the user setup job
+#  -e"user_setup_scm_url=https://github.com/rh-mlops-workshop/agnosticd"
+#  -e"user_setup_scm_ref=$(git rev-parse --abbrev-ref HEAD)"
 ----
 
 === To Delete an environment
@@ -78,14 +86,23 @@ GUID=b5c8
 ACTION=remove 
 
 # a TARGET_HOST is specified in the command line, without using an inventory file
-ansible-playbook -i localhost, -c local ./configs/ocp-workloads/ocp-workload.yml \
-    -e "ansible_python_interpreter=`which python`" \
-    -e"ACTION=$ACTION" \
-    -e"ocp_username=${OCP_USERNAME}" \
-    -e"ocp_workload=${WORKLOAD}" \
-    -e"guid=${GUID}" \
-    -e"silent=False" \
-    -e"num_users=${USER_COUNT}" 
+ansible-playbook -i localhost, -c local \
+  ./configs/ocp-workloads/ocp-workload.yml \
+  -e "ansible_python_interpreter=`which python`" \
+  -e"ACTION=$ACTION" \
+  -e"ocp_username=${OCP_USERNAME}" \
+  -e"ocp_workload=${WORKLOAD}" \
+  -e"guid=${GUID}" \
+  -e"silent=False" \
+  -e"num_users=${USER_COUNT}"
+
+# It may take a while for the namespaces to be terminated:
+oc get projects | grep labs
+
+# Sometimes, the namespace can get stuck because of kfdef resource from ODH operator
+# https://access.redhat.com/solutions/4165791
+oc patch -n labs-infra kfdef.kfdef.apps.kubeflow.org/odh-jupyterhub --type=merge -p '{"metadata": {"finalizers":null}}'
+oc patch -n labs-grafana kfdef.kfdef.apps.kubeflow.org/odh-grafana --type=merge -p '{"metadata": {"finalizers":null}}'
 ----
 == To develop the workshop guide on OpenShift
 

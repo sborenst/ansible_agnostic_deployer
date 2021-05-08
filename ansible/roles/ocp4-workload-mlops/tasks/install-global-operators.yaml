@@ -11,17 +11,22 @@
     - odh_subscription.yaml
     - seldon_subscription.yaml
 
-- name: "Wait for odh operator to be Succeeded"
+- name: "Wait for operator to be Succeeded"
   k8s_info:
     kind: Pod
     api_version: v1
     namespace: openshift-operators
-    label_selectors:
-      - name = opendatahub-operator
+    label_selectors: 
+     - "{{label_selector}}"
     field_selectors:
       - status.phase=Running  
   register: result
   until: result.resources | length == 1
-  retries: 40
-  delay: 10
-    
+  retries: 400
+  delay: 2
+  loop:
+    - name = opendatahub-operator
+    - name = openshift-pipelines-operator
+    - app = seldon
+  loop_control:
+    loop_var: label_selector

@@ -71,15 +71,15 @@
                 claimName: "jupyterhub-nb-{{user}}-pvc"
         backoffLimit: 4
 
-- name: Wait until job is done
-  k8s_facts:
+- name: Wait until git repo setup for jupyterhub job is done
+  k8s_info:
     name: "{{user}}-jupyterhub-pvc-setup"
     kind: Job
     namespace: labs-infra
   register: job_status
   until: job_status | json_query("resources[0].status.succeeded")
-  retries: 40
-  delay: 10
+  retries: 400
+  delay: 2
   ignore_errors: yes
 
 - name: delete git job

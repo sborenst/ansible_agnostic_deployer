@@ -1,0 +1,104 @@
+---
+- debug: 
+    msg: "This is for {{user}}"
+
+- name: Random pause
+  pause:
+    seconds: "{{ 61 | random(start=10, step=2) }}"
+
+- name: Create temporary directory
+  tempfile:
+    state: directory
+    suffix: ansible
+  register: tempfile_1
+
+- set_fact:
+    tmp_dir: "{{tempfile_1.path}}"
+    users:
+     - "{{user}}"
+
+- name: Create user projects
+  include_tasks: tasks/create_project.yaml
+  vars:
+    name: "{{ item[0] }}-{{ item[1] }}"
+    user: "{{ item[0] }}"
+  loop: "{{ users | product(user_namespaces)|list }}"
+
+- name: Add gogs users 
+  include_tasks: tasks/add-gogs-users.yaml
+
+- name: Install mlflow
+  include_tasks: tasks/install-mlflow.yaml
+
+- name: Duplicate aws credentials from nooba
+  include_tasks: tasks/dup_aws_credentials.yaml
+  loop:
+    - secrets
+    - configmap
+  vars:
+    namespaces: 
+      - stage
+      - prod
+      - labs-infra
+  loop_control:
+    loop_var: kind
+
+- name: Create user configmap
+  include_tasks: tasks/create-user-cm.yaml
+  vars:
+    user: "{{ item[0] }}"
+    ns: "{{ item[1] }}"    
+  loop: "{{ users|product(['dev', 'stage', 'prod', 'labs-infra'])|list }}"
+
+- name: install prom service monitor
+  include_tasks: tasks/install-servicemonitor.yaml
+
+- name: Add repo for jupyterhub users
+  include_tasks: add-git-repo-jupyterhub.yaml
+
+- name: install web notification
+  include_tasks: tasks/install-web-notifications.yaml
+  vars:
+    user: "{{ item[0] }}"
+    ns: "{{ item[0] }}-{{ item[1] }}"
+  loop: "{{ users|product(['prod'])|list }}"
+
+- name: create user pipeline
+  include_tasks: tasks/install-pipelines.yaml
+  vars:
+    user: "{{ item[0] }}"
+    ns: "{{ item[0] }}-{{ item[1] }}"    
+    pipeline_j2: "{{item[1]}}-pipeline.yaml.j2"
+    trigger_j2: "{{item[1]}}-tektontriggers.yaml.j2"
+    repository: "{{ repositories | first }}"
+  loop: "{{ users|product(['stage'])|list }}"
+
+- name: add pipeline view role from staging to prod
+  shell: |
+    oc adm policy add-role-to-user edit system:serviceaccount:{{user}}-stage:pipeline -n {{user}}-prod
+
+- name: Add nexus docker secrets
+  include_tasks: tasks/add_nexus_secrets.yaml
+  vars:
+    user: "{{ item[0] }}"
+    ns: "{{ item[0] }}-{{ item[1] }}"
+  loop: "{{ users|product(['dev', 'prod', 'stage'])|list }}"
+
+- name: Add data repo
+  include_tasks: tasks/add-dvc-repo.yaml  
+
+- name: setup argocd
+  include_tasks: tasks/setup-argocd.yaml
+
+- name: Setup kie secerts
+  include_tasks: tasks/setup-kie-secrets.yaml
+
+- name: install codeready
+  include_tasks: tasks/setup-codeready-user.yaml
+
+- name: Install consumer app
+  include_tasks: tasks/install-consumer-app.yaml
+  vars:
+    user: "{{ item[0] }}"
+    ns: "{{ item[0] }}-{{ item[1] }}"
+  loop: "{{ users|product(['prod'])|list }}"

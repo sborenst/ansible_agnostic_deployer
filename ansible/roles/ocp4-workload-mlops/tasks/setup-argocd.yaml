@@ -1,0 +1,22 @@
+---
+- name: Create argocd repo passwords
+  k8s:
+    state: present
+    definition:    
+      kind: Secret
+      apiVersion: v1
+      metadata:
+        name: repo-{{user}}-deploy
+        namespace: labs-argocd
+      data:
+        password: "{{ gogs_pwd | b64encode }}"
+        username: "{{ user | b64encode }}"
+      type: Opaque
+  
+- name: Create argocd application
+  include_tasks: add-argocd-app.yaml
+  vars:
+    user: "{{ item[0] }}"
+    ns: "{{ item[0] }}-{{ item[1] }}"    
+    env: "{{item[1]}}"    
+  loop: "{{ users|product(['stage', 'prod'])|list }}"

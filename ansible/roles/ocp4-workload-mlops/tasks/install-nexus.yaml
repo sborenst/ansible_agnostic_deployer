@@ -18,8 +18,8 @@
     validate_certs: false
   register: result
   until: result.status == 200
-  retries: 50
-  delay: 10
+  retries: 400
+  delay: 2
 
 - name: Create docker registry service
   k8s:
@@ -58,10 +58,3 @@
           name: nexus-docker          
           weight: 100
         wildcardPolicy: None
-
-- name: Add nexus docker secrets
-  include_tasks: add_nexus_secrets.yaml
-  vars:
-    user: "{{ item[0] }}"
-    ns: "{{ item[0] }}-{{ item[1] }}"
-  loop: "{{ users|product(['dev', 'prod', 'stage'])|list }}"

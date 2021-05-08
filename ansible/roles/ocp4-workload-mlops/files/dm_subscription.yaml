@@ -8,6 +8,5 @@ spec:
   channel: stable
   installPlanApproval: Automatic
   name: businessautomation-operator
-  source: redhat-operators
+  source: olm-snapshot-redhat-catalog
   sourceNamespace: openshift-marketplace
-  #startingCSV: businessautomation-operator.7.9.1-1

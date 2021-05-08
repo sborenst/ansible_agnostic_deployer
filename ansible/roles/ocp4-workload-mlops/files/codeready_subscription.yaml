@@ -8,5 +8,5 @@ spec:
   channel: latest
   installPlanApproval: Automatic
   name: codeready-workspaces
-  source: redhat-operators
+  source: olm-snapshot-redhat-catalog
   sourceNamespace: openshift-marketplace

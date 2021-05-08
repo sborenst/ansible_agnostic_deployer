@@ -1,5 +1,5 @@
 ---
-- name: "Check if repository {{ data_repo_name }} exists in git for user {{ user }}"
+- name: Check if repository {{ data_repo_name }} exists in git for user {{ user }}
   uri:
     url: https://gogs-labs-infra.{{ route_subdomain }}/api/v1/repos/{{ user }}/{{ data_repo_name }}
     user: "{{ user }}"
@@ -10,7 +10,7 @@
   register: repo_result
 
 - block:
-    - name: "Create git repository {{ data_repo_name }} for user {{ user }}"
+    - name: Create git repository {{ data_repo_name }} for user {{ user }}
       uri:
         url: https://gogs-labs-infra.{{ route_subdomain }}/api/v1/user/repos
         method: POST
@@ -45,100 +45,46 @@
     - set_fact:
         bucket_name: "{{ result.resources[0].data['BUCKET_NAME'] }}"
 
-    - name: Delete job for user {{ user }}
-      k8s:
-        state: absent
-        definition:
-          apiVersion: batch/v1
-          kind: Job
-          metadata:
-            name: data-repo-setup-{{user}}
-            namespace: labs-setup
+    - name: Create temporary git directory
+      tempfile:
+        state: directory
+        suffix: git
+      register: tempfile_1
 
-    - name: Setup data repo for user {{ user }} 
-      k8s:
-        definition:
-          apiVersion: batch/v1
-          kind: Job
-          metadata:
-            name: data-repo-setup-{{user}}
-            namespace: labs-setup
-          spec:
-            selector: {}
-            template:
-              metadata:
-                name: python-36
-              spec:
-                containers:
-                  - name: python-36
-                    image: registry.redhat.io/ubi8/python-36               
-                    command:                 
-                      - /bin/sh
-                      - -c
-                      - |
-                        set -x
-                        set -eo pipefail
+    - set_fact:
+        download_file: "{{tempfile_1.path}}/data.tar.bz2"
+        output_dir: "{{tempfile_1.path}}/output"
 
-                        pip install -U pip setuptools
-                        pip install dvc==0.94.0 boto3==1.14.7
-                          
-                        if [ ! -f "{{download_file}}" ]; then
-                          pip install gdown
-                          gdown --id {{data_gdrive_id}} -O "{{download_file}}"
-                          mkdir -p /output/data
-                          tar -C /output/data -xvjf {{download_file}}
-                        fi
-                        
-                        cd /output/data
-                        rm -rf .git .dvc *.dvc
+    - name: Setup data repo for user {{ user }}
+      shell: |                
+        gdown --id {{data_gdrive_id}} -O "{{download_file}}"        
+        mkdir -p {{output_dir}}
+        tar -C {{output_dir}} -xvjf {{download_file}}
+          
+        cd {{output_dir}}
+        rm -rf .git .dvc *.dvc
 
-                        git init
-                        git remote add {{ user }} https://{{ user }}:{{ gogs_pwd }}@gogs-labs-infra.{{ route_subdomain }}/{{ user }}/{{ data_repo_name }}.git
-                        git config --local user.email "{{ user }}@example.com"
-                        git config --local user.name "{{ user }}"
+        git init
+        git remote add {{ user }} https://{{ user }}:{{ gogs_pwd }}@gogs-labs-infra.{{ route_subdomain }}/{{ user }}/{{ data_repo_name }}.git
+        git config --local user.email "{{ user }}@example.com"
+        git config --local user.name "{{ user }}"
 
-                        dvc init        
-                        dvc remote add -d myremote s3://{{ bucket_name }}/dvcf4g2
-                        dvc remote modify myremote endpointurl https://s3-openshift-storage.{{route_subdomain}}
-                        git commit -a -m "Initialize DVC"
+        dvc init        
+        dvc remote add -d myremote s3://{{ bucket_name }}/dvcf4g2
+        dvc remote modify myremote endpointurl https://s3-openshift-storage.{{route_subdomain}}
+        git commit -a -m "Initialize DVC"
 
-                        dvc add *.csv
-                        git add .gitignore *.dvc
+        dvc add *.csv
+        git add .gitignore *.dvc
 
-                        git commit -a -m "new data"
-                        git tag -a v1.0 -m "version 1.0"
-                        git push -f --all {{ user }}
-                        git push -f --tags {{ user }}
+        git commit -a -m "new data"
+        git tag -a v1.0 -m "version 1.0"
+        git push -f --all "{{ user }}"
+        git push -f --tags "{{ user }}"
 
-                        dvc push
-                    env:
-                      - name: AWS_ACCESS_KEY_ID
-                        value: "{{aws_access_key}}"
-                      - name: AWS_SECRET_ACCESS_KEY
-                        value: "{{aws_secret_key}}"   
-                      - name: PIP_INDEX_URL
-                        value: "https://nexus-labs-nexus.{{ route_subdomain }}/repository/pypi/simple"
-                    volumeMounts:
-                    - mountPath: /output
-                      name: output
-                restartPolicy: Never                
-                volumes:
-                - name: output
-                  persistentVolumeClaim:
-                    claimName: data-pvc
-            backoffLimit: 4
-      vars:
-        download_file: /output/data.tar.bz2
-
-    - name: Wait until job is done
-      k8s_facts:
-        name: data-repo-setup-{{user}}
-        namespace: labs-setup
-        kind: Job
-      register: job_status
-      until: job_status | json_query("resources[0].status.succeeded")
-      retries: 100
-      delay: 10
-      #ignore_errors: yes
-
+        dvc push
+      environment:
+        AWS_ACCESS_KEY_ID: "{{aws_access_key}}"
+        AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"   
+    
   when: repo_result.status != 200

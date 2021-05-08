@@ -1,0 +1,26 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: "ansible-pb-build" 
+  namespace: labs-setup
+spec:
+  source: 
+    git:
+      uri: "{{s2i_ansible_scm_url}}"
+      ref: "{{s2i_ansible_scm_ref}}"
+  strategy:
+    dockerStrategy:   
+      from:
+        kind: "ImageStreamTag"
+        name: "python:latest"
+        namespace: openshift
+      env:
+        - name: GIT_URL
+          value: "{{user_setup_scm_url}}"
+        - name: GIT_REFSPEC
+          value: "{{user_setup_scm_ref}}"
+    type: Docker
+  output: 
+    to:
+      kind: "ImageStreamTag"
+      name: "ansible-pb:latest"

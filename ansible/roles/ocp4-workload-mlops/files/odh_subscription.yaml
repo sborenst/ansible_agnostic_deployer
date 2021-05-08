@@ -7,6 +7,5 @@ spec:
   channel: beta
   installPlanApproval: Automatic
   name: opendatahub-operator
-  source: community-operators
+  source: olm-snapshot-community-catalog
   sourceNamespace: openshift-marketplace
-  #startingCSV: opendatahub-operator.v0.7.0

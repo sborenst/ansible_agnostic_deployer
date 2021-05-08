@@ -4,11 +4,14 @@
     state: present    
     definition: "{{ lookup('file', 'jupyterhub_kfdef.yaml' ) | from_yaml }}"
 
-- name: Add repo for jupyterhub users
-  include_tasks: add-git-repo-jupyterhub.yaml
-  loop: "{{users}}"
-  loop_control:
-    loop_var: user
-
-
+- name: "Wait for jupyterhub pod to be in Ready state"
+  k8s_info:
+    kind: Pod
+    label_selectors:
+      - 'app=jupyterhub'
+    namespace: labs-infra
+  register: pod_status
+  until: (pod_status | json_query("resources[0].status.containerStatuses[0].ready") | bool) == true
+  retries: 400
+  delay: 2
 

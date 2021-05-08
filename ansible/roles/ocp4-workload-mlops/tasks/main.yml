@@ -7,7 +7,7 @@
     file: ./pre_workload.yml
     apply:
       become: "{{ become_override | bool }}"
-  when: ACTION == "create" or ACTION == "provision"
+  when: ACTION == "create" or ACTION == "provision" or ACTION == 'create-user'
 
 - name: Running Workload Tasks
   include_tasks:
@@ -15,6 +15,13 @@
     apply:
       become: "{{ become_override | bool }}"
   when: ACTION == "create" or ACTION == "provision"
+
+- name: Running User Setup Tasks
+  include_tasks:
+    file: ./user_workload.yml
+    apply:
+      become: "{{ become_override | bool }}"
+  when: ACTION == "create-user" 
 
 - name: Running Post Workload Tasks
   include_tasks:
@@ -29,3 +36,4 @@
     apply:
       become: "{{ become_override | bool }}"
   when: ACTION == "destroy" or ACTION == "remove"
+

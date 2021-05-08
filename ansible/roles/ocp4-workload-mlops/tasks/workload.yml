@@ -13,13 +13,6 @@
   shell: |
          oc adm policy add-cluster-role-to-user cluster-admin {{ ocp_username }}
 
-- name: Create user projects
-  include_tasks: create_project.yaml
-  vars:
-    name: "{{ item[0] }}-{{ item[1] }}"
-    user: "{{ item[0] }}"
-  loop: "{{ users|product(user_namespaces)|list }}"
-
 - name: "Create Infra Project"
   include_tasks: create-infra-project.yaml
   loop: "{{infra_projects}}"
@@ -28,35 +21,6 @@
     
 - name: Install gogs
   include_tasks: install-gogs.yaml
-
-- name: Add gogs users 
-  include_tasks: add-gogs-users.yaml
-  loop: "{{users}}"
-  loop_control:
-    loop_var: user
-
-- name: Install mlflow
-  include_tasks: install-mlflow.yaml
-  
-- name: Duplicate aws credentials
-  include_tasks: dup_aws_credentials.yaml
-  loop:
-    - secrets
-    - configmap
-  vars:
-    namespaces: 
-      - stage
-      - prod
-      - labs-infra
-  loop_control:
-    loop_var: kind
- 
-- name: Create user configmap
-  include_tasks: create-user-cm.yaml
-  vars:
-    user: "{{ item[0] }}"
-    ns: "{{ item[1] }}"    
-  loop: "{{ users|product(['dev', 'stage', 'prod', 'labs-infra'])|list }}"
 
 - name: install global operators
   include_tasks: install-global-operators.yaml
@@ -67,54 +31,12 @@
 - name: install jupyterhub
   include_tasks: install-jupyterhub.yaml
 
-- name: install web notification
-  include_tasks: install-web-notifications.yaml
-  vars:
-    user: "{{ item[0] }}"
-    ns: "{{ item[0] }}-{{ item[1] }}"
-  loop: "{{ users|product(['prod'])|list }}"
-
-- name: create user pipeline
-  include_tasks: install-pipelines.yaml
-  vars:
-    user: "{{ item[0] }}"
-    ns: "{{ item[0] }}-{{ item[1] }}"    
-    pipeline_j2: "{{item[1]}}-pipeline.yaml.j2"
-    trigger_j2: "{{item[1]}}-tektontriggers.yaml.j2"
-    repository: "{{ repositories | first }}"
-  loop: "{{ users|product(['stage'])|list }}"
-
-- name: add pipeline view role from staging to prod
-  shell: |
-    oc adm policy add-role-to-user edit system:serviceaccount:{{user}}-stage:pipeline -n {{user}}-prod
-  loop: "{{users}}"
-  loop_control:
-    loop_var: user
-
-# Nexus must be after pipeline
 - name: Install nexus
   include_tasks: install-nexus.yaml
-
-# We wil resuse the s3 bucket from mlflow
-# And after Nexus
-- name: Add data repo
-  include_tasks: setup-dvc.yaml
-
-- name: install argocd
-  include_tasks: install-argocd.yaml
   
-- name: install guides
-  include_tasks: install-guides.yaml
-  vars:
-    guide: "{{ module_titles[0].name }}"
-  #loop: "{{ module_titles }}"
-
-- name: install username distribution
-  include_tasks: install-username-distribution.yaml
-
 # Install CodeReady Workspaces
 - name: see if codeready is installed
-  k8s_facts:
+  k8s_info:
     api_version: org.eclipse.che/v1
     kind: CheCluster
     name: codeready-workspaces
@@ -129,9 +51,23 @@
   when: r_codeready_cr.resources | list | length == 0
   include_tasks: install-codeready.yaml
 
+- name: install argocd operator
+  include_tasks: install-argocd-operator.yaml
+
+- name: Setup users components
+  include_tasks: setup-users.yaml
+
+- name: install username distribution
+  include_tasks: install-username-distribution.yaml
+
+- name: install guides
+  include_tasks: install-guides.yaml
+  vars:
+    guide: "{{ module_titles[0].name }}"
+
 # Install AMQ Streams
 - name: Check if AMQ Streams is installed
-  k8s_facts:
+  k8s_info:
     api_version: kafka.strimzi.io/v1beta1
     kind: Kafka
     name: amq-streams
@@ -144,25 +80,35 @@
 
 - name: Install DM
   include_tasks: install-dm.yaml
-
-- name: Install consumer app
-  include_tasks: install-consumer-app.yaml
-  vars:
-    user: "{{ item[0] }}"
-    ns: "{{ item[0] }}-{{ item[1] }}"
-  loop: "{{ users|product(['prod'])|list }}"
-
+  
 - name: Preload images 
   include_tasks: preload-images.yaml
 
-- name: Delete temp project
-  k8s:
-    state: absent
-    kind: Project
-    api_version: project.openshift.io/v1
-    name: "{{item}}"    
-  loop:
-    - labs-setup
+# Each job takes about XXX minutes
+- name: Wait for all users jobs to finish
+  k8s_info:
+    name: "{{user}}-setup"
+    namespace: labs-setup
+    kind: Job
+  register: job_status
+  until: job_status | json_query("resources[0].status.succeeded")
+  retries: 400
+  delay: 2
+  loop: "{{users}}"
+  loop_control:
+    loop_var: user
+
+- name: install argocd
+  include_tasks: install-argocd.yaml
+
+# - name: Delete temp project
+#   k8s:
+#     state: absent
+#     kind: Project
+#     api_version: project.openshift.io/v1
+#     name: "{{item}}"    
+#   loop:
+#     - labs-setup
 
 # Leave this as the last task in the playbook.
 - name: workload tasks complete

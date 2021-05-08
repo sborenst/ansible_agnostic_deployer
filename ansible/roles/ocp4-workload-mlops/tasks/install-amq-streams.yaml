@@ -13,13 +13,13 @@
 
 # Wait for CRD
 - name: Wait for AMQ Streams CRD to be ready
-  k8s_facts:
+  k8s_info:
     api_version: apiextensions.k8s.io/v1beta1
     kind: CustomResourceDefinition
     name: kafkas.kafka.strimzi.io
   register: r_amqstreams_crd
-  retries: 200
-  delay: 10
+  retries: 400
+  delay: 2
   until: r_amqstreams_crd.resources | list | length == 1
 
 # Install AMQ Streams CR
@@ -34,6 +34,7 @@
   - ./files/amq_streams_cr.yaml
 
 # Wait for kafka-entity-operator pod to be up
+# Takes 200s
 - name: "Wait for kafka-entity-operator pod to be in Ready state"
   k8s_info:
     kind: Pod
@@ -42,5 +43,5 @@
     namespace: labs-kafka
   register: pod_status
   until: (pod_status | json_query("resources[0].status.containerStatuses[0].ready") | bool) == true
-  retries: 40
-  delay: 10
+  retries: 400
+  delay: 2

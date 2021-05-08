@@ -11,6 +11,5 @@ spec:
       value: "false"
   installPlanApproval: Automatic
   name: seldon-operator-certified
-  source: certified-operators
+  source: olm-snapshot-certified-catalog
   sourceNamespace: openshift-marketplace
-  #startingCSV: seldon-operator.v1.1.0

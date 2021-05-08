@@ -1,6 +1,6 @@
 ---
 - name: search for guide {{ guide }}
-  k8s_facts:
+  k8s_info:
     kind: Deployment
     name: guides-{{ guide }}
     namespace: labs-infra

@@ -3,7 +3,7 @@ become_override: no
 ocp_username: opentlc-mgr
 silent: False
 
-num_users: 10
+num_users: 3
 
 module_titles:
   - { name: m1, title: "Click here to get started", path: /workshop/mlops/lab/kubernetes-overview }
@@ -83,7 +83,7 @@ odh_operator_ver: opendatahub-operator.v0.8.0
 ceph_storage:
   ceph_namespace: openshift-storage
   storage_requests: 1000Gi
-  ocs_source: redhat-operators
+  ocs_source: olm-snapshot-redhat-catalog  
   ocs_source_namespace: openshift-marketplace
   set_cephfs_default_sc: true
   #ocs_version: 4.6.1
@@ -106,3 +106,16 @@ ceph_storage:
       requests:
         cpu: 1
         memory: 2Gi
+
+# To build ansible-pb image 
+s2i_ansible_scm_url: https://github.com/rh-mlops-workshop/s2i-ansible
+s2i_ansible_scm_ref: main
+
+catalog_snapshot_tag: v4.6_2021_04_28
+catalog_snaphots:
+  - image: quay.io/ltsai/olm_snapshot_certified_catalog:{{catalog_snapshot_tag}}
+    name: olm-snapshot-certified-catalog
+  - image: quay.io/ltsai/olm_snapshot_community_catalog:{{catalog_snapshot_tag}}
+    name: olm-snapshot-community-catalog
+  - image: quay.io/ltsai/olm_snapshot_redhat_catalog:{{catalog_snapshot_tag}}
+    name: olm-snapshot-redhat-catalog

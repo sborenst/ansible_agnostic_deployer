@@ -1,0 +1,63 @@
+---
+- name: Create ansible image image stream
+  k8s:
+    state: present
+    definition: "{{ lookup('file', 'ansible_pb_ist.yaml' ) | from_yaml }}"
+
+- name: Create ansible image build config
+  k8s:
+    state: present
+    definition: "{{ lookup('template', 'ansible_pb_bc.yaml.j2' ) | from_yaml }}"
+
+- name: Create ansible service account
+  k8s:
+    state: present
+    definition: "{{ lookup('file', 'ansible_sa.yaml' ) | from_yaml }}"
+
+- name: Assign cluster-admin custer role-based binding for ansible sa
+  k8s:
+    state: present
+    definition: "{{ lookup('file', 'ansible_admin_crb.yaml' ) | from_yaml }}"
+
+- name: Start ansible image build and wait for it to finish
+  command: oc start-build ansible-pb-build -n labs-setup -w
+
+- name: Delete job for user setup
+  k8s:
+    state: absent
+    definition:
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: "{{user}}-setup"
+        namespace: labs-setup
+  loop: "{{users}}"
+  loop_control:
+    loop_var: user
+    
+- name: Setup user job
+  k8s:
+    wait: false
+    definition:
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: "{{user}}-setup"
+        namespace: labs-setup
+      spec:
+        template:
+          metadata:
+            name: "{{user}}-setup"
+          spec:
+            containers:
+              - name: ansible-pb
+                image: image-registry.openshift-image-registry.svc:5000/labs-setup/ansible-pb:latest
+                env:
+                  - name: user
+                    value: "{{user}}"                  
+            restartPolicy: Never   
+            serviceAccountName: ansible
+            serviceAccount: ansible             
+  loop: "{{users}}"
+  loop_control:
+    loop_var: user

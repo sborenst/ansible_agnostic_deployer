@@ -1,0 +1,18 @@
+---
+- name: deploy argocd operator
+  k8s:
+    state: present
+    definition: "{{ lookup('file', item ) | from_yaml }}"
+  loop:
+  - ./files/argocd_operatorgroup.yaml
+  - ./files/argocd_subscription.yaml
+
+- name: Wait for ArgoCD CRD to be ready
+  k8s_info:
+    api_version: apiextensions.k8s.io/v1beta1
+    kind: CustomResourceDefinition
+    name: argocds.argoproj.io
+  register: argocd_cr
+  retries: 400
+  delay: 2
+  until: argocd_cr.resources | list | length == 1

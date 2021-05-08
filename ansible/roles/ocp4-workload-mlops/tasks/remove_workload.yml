@@ -84,16 +84,6 @@
   loop_control:
     label: "{'name': {{item.name}},'namespace': {{item.namespace}}}"
 
-- name: Delete APIService v1beta1.kwkoo.github.com 
-  shell: >
-    oc delete APIService v1beta1.kwkoo.github.com -n labs-infra
-  ignore_errors: yes
-
-- name: ValidatingWebhookConfiguration pipelinerestrictor
-  shell: >
-    oc delete ValidatingWebhookConfiguration pipelinerestrictor -n labs-infra
-  ignore_errors: yes
-
 - name: delete other projects
   k8s:
     state: absent
@@ -111,7 +101,6 @@
     - labs-nexus    
     - labs-dm
     - labs-setup
-
   ignore_errors: yes
 
 - name: delete template

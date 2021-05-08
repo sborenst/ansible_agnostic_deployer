@@ -4,21 +4,39 @@
 - name: usercount debug
   debug:
     msg: "Debugging num_users {{ num_users }}"
+  when: ACTION != "create-user"
 
 - name: create usernames
   set_fact:
     users: "{{ users | default([]) + ['user'+item | string] }}"
   loop: "{{ range(1,((num_users | int) + 1)) | list }}"
+  when: ACTION != "create-user"
+
+- name: Get the number of worker nodes
+  k8s_info:
+    kind: Node
+    api_version: v1
+    label_selectors:
+      - node-role.kubernetes.io/worker          
+  register: worker_nodes
+  
+- fail:
+    msg: OCS 4 requires a min of 3 workers 
+  when: worker_nodes.resources | length < 3
+
+- name: Set num of worker nodes fact
+  set_fact:
+    num_worker_nodes: "{{worker_nodes.resources | length}}"
 
 - name: Get API server URL
-  k8s_facts:
+  k8s_info:
     api_version: config.openshift.io/v1
     kind: Infrastructure
     name: cluster
   register: r_api_url
 
 - name: Get Web Console route
-  k8s_facts:
+  k8s_info:
     api_version: route.openshift.io/v1
     kind: Route
     namespace: openshift-console
@@ -46,21 +64,26 @@
   set_fact:
     console_url: "https://{{ r_console_route.resources[0].spec.host }}"
 
-- name: Get the number of worker nodes
-  k8s_info:
-    kind: Node
-    api_version: v1
-    label_selectors:
-      - node-role.kubernetes.io/worker          
-  register: worker_nodes
-  
-- fail:
-    msg: OCS 4 requires a min of 3 workers 
-  when: worker_nodes.resources | length < 3
-
-- name: Set num of worker nodes fact
+- name: Set user scm url
   set_fact:
-    num_worker_nodes: "{{worker_nodes.resources | length}}"
+    user_setup_scm_url: "{{ __meta__.deployer.scm_url }}"
+    user_setup_scm_ref: "{{ __meta__.deployer.scm_ref }}"
+  when: __meta__.deployer.scm_url is defined
+
+- block:
+  - name: Get current git clone url
+    command: git config --get remote.origin.url
+    register: scm_url
+
+  - name: Get current git commit HEAD
+    command: git rev-parse --verify HEAD
+    register: scm_ref
+
+  - name: Set user scm url
+    set_fact:
+      user_setup_scm_url: "{{ scm_url.stdout }}"
+      user_setup_scm_ref: "{{ scm_ref.stdout }}"
+  when: user_setup_scm_url is not defined
 
 - name: debug values
   debug:
@@ -71,6 +94,8 @@
       - "route subdomain: {{ route_subdomain }}"
       - "ocp_username: {{ ocp_username }}"
       - "num_worker_nodes: {{ num_worker_nodes }}"
+      - "user_setup_scm_url: {{ user_setup_scm_url }}"
+      - "user_setup_scm_ref: {{ user_setup_scm_ref }}"
 
 - name: Check whether binary exists
   include_tasks: check-binary-exists.yaml
@@ -80,20 +105,26 @@
 
 - name: Install helm
   include_tasks: install-helm.yaml
-    
+  when: ACTION != "create-user"
+  
 - name: Add helm chart repo
   command: helm repo add rhmlops https://rh-mlops-workshop.github.io/helm-charts/
 
 - name: Update helm repo
   command: helm repo update 
 
+- name: Install snapshot catalog source
+  include_tasks: install-catalogsource.yaml
+
 - name: Configure OpenShift Container Storage 4
   include_tasks: install-ceph.yaml
+  when: ACTION != "create-user"
    
 - name: Remove tmp dir
   file:
     path: "{{ tmp_dir }}"
     state: absent
+  when: guid is defined
 
 # Leave this as the last task in the playbook.
 - name: pre_workload tasks complete

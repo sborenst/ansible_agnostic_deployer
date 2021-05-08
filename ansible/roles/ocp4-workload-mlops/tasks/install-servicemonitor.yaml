@@ -1,0 +1,23 @@
+---
+- name: Create ServiceMonitor
+  k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: odh-seldon
+        namespace: "{{ item[0] }}-{{ item[1] }}"
+      spec:
+        endpoints:
+          - interval: 30s
+            path: /prometheus
+            port: http
+            scheme: http
+        selector:
+          matchExpressions:
+            - key: model
+              operator: DoesNotExists        
+            - key: seldon-app
+              operator: Exists
+  loop: "{{ users|product(user_namespaces)|list }}"

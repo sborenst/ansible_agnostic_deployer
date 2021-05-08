@@ -1,6 +1,6 @@
 ---
 - name: Get all pipeline runs for {{user}} in {{ns}}
-  k8s_facts:
+  k8s_info:
     api_version: tekton.dev/v1alpha1
     kind: PipelineRun
     namespace: "{{ns}}"

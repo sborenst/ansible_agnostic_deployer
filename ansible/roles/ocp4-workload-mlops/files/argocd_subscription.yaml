@@ -7,6 +7,5 @@ spec:
   channel: alpha
   installPlanApproval: Automatic
   name: argocd-operator
-  source: community-operators
+  source: olm-snapshot-community-catalog
   sourceNamespace: openshift-marketplace
-  #startingCSV: argocd-operator.v0.0.14

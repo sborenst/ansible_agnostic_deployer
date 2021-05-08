@@ -21,6 +21,18 @@
     state: present    
     definition: "{{ lookup('file', './files/grafana_kfdef.yaml' ) | from_yaml }}"
 
+- name: Wait for grafana operator to be ready
+  include_tasks: wait-operator-running.yaml
+  vars:
+    operator_ns: labs-grafana
+    operators_to_wait:
+      - key: name
+        value: grafana-operator
+    crds_to_wait:
+      - grafanadashboards.integreatly.org                           
+      - grafanadatasources.integreatly.org                          
+      - grafanas.integreatly.org    
+
 # Deploy Prometheus operator
 - name: Create operator subscription for Prometheus
   k8s:
@@ -33,19 +45,19 @@
   - prom_operatorgroup.yaml
   - prom_subscription.yaml
 
-- name: "Wait for prometheus operator to be Succeeded"
-  k8s_facts:
-    api_version: operators.coreos.com/v1alpha1
-    kind: ClusterServiceVersion
-    name: prometheusoperator.0.37.0
-    namespace: labs-prometheus
-  register: result
-  until: result | json_query("resources[0].status.phase=='Succeeded'")
-  retries: 40
-  delay: 10
+- name: Wait for prometheus operator to be ready
+  include_tasks: wait-operator-running.yaml
+  vars:
+    operator_ns: labs-prometheus
+    operators_to_wait:
+      - key: app.kubernetes.io/name
+        value: prometheus-operator  
+    crds_to_wait:
+      - prometheuses.monitoring.coreos.com                      
+      - prometheusrules.monitoring.coreos.com
 
 - name: Get prometheus operator group info
-  k8s_facts:
+  k8s_info:
     api_version: operators.coreos.com/v1
     kind: OperatorGroup
     name: labs-prometheus-operator-group
@@ -53,7 +65,7 @@
   register: check_namespace
   
 - name: Wait for prometheus operator group to appear
-  k8s_facts:
+  k8s_info:
     api_version: operators.coreos.com/v1
     kind: OperatorGroup
     name: labs-prometheus-operator-group
@@ -61,8 +73,8 @@
   register: result
   until: result | json_query("resources[0].status.namespaces") | length == 1
   when: not (check_namespace | json_query("resources[0].spec.selector")) # Allows reentrant
-  retries: 40
-  delay: 10
+  retries: 400
+  delay: 2
 
 - name: Patch operator group to watch ns that are labeled
   k8s:
@@ -86,7 +98,7 @@
       apiVersion: operators.coreos.com/v1alpha1
       kind: ClusterServiceVersion
       metadata:
-        name: prometheusoperator.0.37.0
+        name: prometheusoperator.0.47.0
         namespace: labs-prometheus
       spec:
         installModes:
@@ -123,26 +135,3 @@
           name: prometheus-operated
         port:
           targetPort: web
-
-- name: Create ServiceMonitor
-  k8s:
-    state: present
-    definition:
-      apiVersion: monitoring.coreos.com/v1
-      kind: ServiceMonitor
-      metadata:
-        name: odh-seldon
-        namespace: "{{ item[0] }}-{{ item[1] }}"
-      spec:
-        endpoints:
-          - interval: 30s
-            path: /prometheus
-            port: http
-            scheme: http
-        selector:
-          matchExpressions:
-            - key: model
-              operator: DoesNotExists        
-            - key: seldon-app
-              operator: Exists
-  loop: "{{ users|product(user_namespaces)|list }}"

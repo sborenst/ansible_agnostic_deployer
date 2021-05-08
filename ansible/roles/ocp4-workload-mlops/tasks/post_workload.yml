@@ -1,16 +1,11 @@
 ---
 # Implement your Post Workload deployment tasks here
-- name: output workshop info
+- name: output workshop info guides
   agnosticd_user_info:
     msg: "{{item}}"
   loop:
     - ""
     - "Provisioned for {{ num_users }} user(s)"
-
-- name: output workshop info guides
-  agnosticd_user_info:
-    msg: "{{item}}"
-  loop:
     - ""
     - "URL for attendees to get a username assigned to them and links to labs:"
     - "http://get-a-username-labs-infra.{{ route_subdomain }}"
@@ -18,12 +13,6 @@
     - ""
     - "get-a-username's admin page is https://get-a-username-labs-infra.{{ route_subdomain }}/admin"
     - "Admin login with admin/{{workshop_openshift_user_password}}"
-    
-
-- name: output workshop info guides
-  agnosticd_user_info:
-    msg: "{{item}}"
-  loop:
     - ""
     - "Gogs url is https://gogs-labs-infra.{{ route_subdomain }}"
     - "Admin login is {{gogs_admin_user}}/{{gogs_admin_password}}"
@@ -38,6 +27,8 @@
     - "Admin login with admin/admin"
     - ""
     - "Workshop guide and materials are available here: https://red.ht/mlopsworkshop"
+    - ""
+    - "It is highly recommended to test the workshop first before the session"
 
 # Leave this as the last task in the playbook.
 - name: post_workload tasks complete

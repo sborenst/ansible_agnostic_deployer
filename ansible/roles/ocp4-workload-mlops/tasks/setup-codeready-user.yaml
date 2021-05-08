@@ -1,0 +1,36 @@
+---
+- name: Get sso secrets
+  k8s_info:
+    kind: Secret
+    namespace: labs-infra
+    name: che-identity-secret
+  register: sso_secret
+
+- name: set codeready username fact
+  set_fact:
+    codeready_sso_admin_username: "{{ sso_secret.resources[0].data.user | b64decode }}"
+
+- name: set codeready password fact
+  set_fact:
+    codeready_sso_admin_password: "{{ sso_secret.resources[0].data.password | b64decode }}"
+
+- name: show codeready keycloak admin username
+  debug:
+    msg: "codeready keycloak admin username: {{ codeready_sso_admin_username }}"
+
+- name: show codeready keycloak admin password
+  debug:
+    msg: "codeready keycloak admin password: {{ codeready_sso_admin_password }}"
+
+- name: create codeready users
+  include_tasks: add_che_user.yaml
+  
+- name: Pre-create and warm user workspaces
+  include_tasks: create_che_workspace.yaml
+  
+- name: wait 2 minutes and let the image download and be registered so workspaces start up
+  pause:
+    minutes: 2
+
+- name: Attempt to warm workspaces which failed to start
+  include_tasks: verify_che_workspace.yaml
